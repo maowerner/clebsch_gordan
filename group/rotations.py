@@ -2,7 +2,97 @@
 with parity.
 """
 import numpy as np
+import scipy.misc
 
-class RotObject(object):
+class RotObj(object):
     """Rotation object"""
-    def __init__(self, ):
+    def __init__(self, vector, omega, prec=1e-6):
+        self.prec = prec
+        self.vector = np.asarray(vector)
+        self.omega = omega
+
+        self.norm = np.sqrt(np.sum(np.abs(vector)))
+        self.theta = np.arccos(vector[2]/self.norm)
+        self.phi = np.arctan2(vector[1], vector[0])
+        self.vector_norm = vector / self.norm
+        # needed for the matrix U
+        self.v = np.sin(self.omega/2.)*np.sin(self.theta)
+        self.u = np.cos(self.omega/2.) - 1.j*np.sin(self.omega/2.)*np.cos(self.theta)
+
+    def __repr__(self):
+        return "vector: %r, omega: %.3f, (r, theta, phi) = (%.3f, %.3f, %.3f)" % (
+                self.vector, self.omega, self.norm, self.theta, self.phi)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def get_vector(self):
+        return self.vector_norm
+
+    def get_omega(self):
+        return self.omega
+
+    def get_angles(self):
+        return (self.theta, self.phi)
+
+    def u_element(self, j, m1, m2):
+        prefactor = np.exp(-1.j*(m1-m2)*self.phi)
+        fac1 = scipy.misc.factorial([j+m1, j-m1, j+m2, j-m2])
+        sqfac1 = np.sqrt(np.prod(fac1))
+        #print(sqfac1)
+        if m1+m2 >= 0:
+            res = 0.
+            for s in range(0, 50):
+            #for s in range(min(j-m1, j-m2)+1):
+                fac = np.asarray([s, s+m1+m2, j-m1-s, j-m2-s])
+                if np.any(fac < 0):
+                    continue
+                fac = scipy.misc.factorial(fac)
+                tmp1 = 1. if s == 0 else np.power(self.v**2 - 1., s)
+                tmp2 = 1. if 2*j-m1-m2-2*s == 0 else np.power(self.v, 2*j-m1-m2-2*s)
+                res += sqfac1/np.prod(fac)*tmp1*tmp2
+            tmp1 = 1. if m1+m2 == 0 else np.power(self.u, m1+m2)
+            tmp2 = np.power(-1.j, 2*j-m1-m2)
+            res *= tmp1*tmp2
+        else:
+            res = 0.
+            for s in range(0, 50):
+            #for s in range(min(j+m1, j+m2)+1):
+                fac = np.asarray([s, s-m1-m2, j+m1-s, j+m2-s])
+                if np.any(fac < 0):
+                    continue
+                fac = scipy.misc.factorial(fac)
+                tmp1 = 1. if s == 0 else np.power(self.v**2-1., s)
+                tmp2 = 1. if 2*j+m1+m2-2*s == 0 else np.power(self.v, 2*j+m1+m2-2*s)
+                res += sqfac1/np.prod(fac)*tmp1*tmp2
+            tmp1 = 1. if m1+m2 == 0 else np.power(self.u.conj(), -m1-m2)
+            tmp2 = np.power(-1.j, 2*j+m1+m2)
+            res *= tmp1*tmp2
+        return prefactor*res
+
+    def u_matrix(self, j):
+        mat = np.zeros((2*j+1, 2*j+1), dtype=complex)
+        for m1 in range(-j, j+1):
+            for m2 in range(-j, j+1):
+                mat[m1+j, m2+j] = self.u_element(j, m1, m2)
+        return mat
+
+_all_rotations = [RotObj([1,0,0], 0),
+        RotObj([1,0,0],   np.pi  ), RotObj([0,1,0],   np.pi  ), RotObj([0,0,1],   np.pi  ),
+        RotObj([1,0,0],  -np.pi  ), RotObj([0,1,0],  -np.pi  ), RotObj([0,0,1],  -np.pi  ),
+        RotObj([1,0,0],   np.pi/2), RotObj([0,1,0],   np.pi/2), RotObj([0,0,1],   np.pi/2),
+        RotObj([1,0,0],  -np.pi/2), RotObj([0,1,0],  -np.pi/2), RotObj([0,0,1],  -np.pi/2),
+        RotObj([1,0,0], 3*np.pi/2), RotObj([0,1,0], 3*np.pi/2), RotObj([0,0,1], 3*np.pi/2),
+        RotObj([1,0,0],-3*np.pi/2), RotObj([0,1,0],-3*np.pi/2), RotObj([0,0,1],-3*np.pi/2),
+        RotObj([1,1,1], 2*np.pi/3), RotObj([-1,1,1], 2*np.pi/3), RotObj([-1,-1,1], 2*np.pi/3), RotObj([1,-1,1], 2*np.pi/3),
+        RotObj([1,1,1],-2*np.pi/3), RotObj([-1,1,1],-2*np.pi/3), RotObj([-1,-1,1],-2*np.pi/3), RotObj([1,-1,1],-2*np.pi/3),
+        RotObj([1,1,1], 4*np.pi/3), RotObj([-1,1,1], 4*np.pi/3), RotObj([-1,-1,1], 4*np.pi/3), RotObj([1,-1,1], 4*np.pi/3),
+        RotObj([1,1,1],-4*np.pi/3), RotObj([-1,1,1],-4*np.pi/3), RotObj([-1,-1,1],-4*np.pi/3), RotObj([1,-1,1],-4*np.pi/3),
+        RotObj([0,1,1],   np.pi), RotObj([0,-1,1],  np.pi), RotObj([1,1,0],   np.pi),
+        RotObj([1,-1,0],  np.pi), RotObj([1,0,1],   np.pi), RotObj([-1,0,1],  np.pi),
+        RotObj([0,1,1],  -np.pi), RotObj([0,-1,1], -np.pi), RotObj([1,1,0],  -np.pi),
+        RotObj([1,-1,0], -np.pi), RotObj([1,0,1],  -np.pi), RotObj([-1,0,1], -np.pi),
+        RotObj([1,1,1], 2*np.pi)]
+
+if __name__ == "__main__":
+    print("for checks execute the test script")
