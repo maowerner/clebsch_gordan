@@ -5,6 +5,7 @@ import numpy as np
 def clean_complex(data, prec=1e-6):
     _data = np.asarray(data)
     for x in np.nditer(_data, op_flags=["readwrite"]):
+        tmp = complex(0., 0.)
         if np.abs(x) < prec:
             tmp = complex(0.,0.)
         else:
@@ -15,6 +16,13 @@ def clean_complex(data, prec=1e-6):
         # reset and set the value of x
         x[...] *= 0.
         x[...] += tmp
+    return _data
+
+def clean_real(data, prec=1e-6):
+    _data = np.asarray(data)
+    for x in np.nditer(_data, op_flags=["readwrite"]):
+        if np.abs(x) < prec:
+            x[...] *= 0.
     return _data
 
 def _eq(data1, data2=None, prec=1e-6):

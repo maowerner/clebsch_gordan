@@ -8,7 +8,44 @@ def main():
     np.set_printoptions(suppress=True)
 
     print(" CMF ".center(50, "*"))
-    g = OhGroup(instances=False)
+    g = group.OhGroup(instances=True)
+    for gi in g.instances:
+        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
+        #gi.Characters()
+        gi.MkClassTable()
+    g.PrintCharTable()
+    g.Check1()
+    g.Check2()
+
+    print(" MF1 ".center(50, "*"))
+    g = group.OhGroup(p2=1, instances=True)
+    for gi in g.instances:
+        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
+        #gi.Characters()
+        gi.MkClassTable()
+    g.PrintCharTable()
+    g.Check1()
+    g.Check2()
+
+    print(" MF2 ".center(50, "*"))
+    g = group.OhGroup(p2=2, instances=True)
+    for gi in g.instances:
+        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
+        #gi.Characters()
+        gi.MkClassTable()
+    g.PrintCharTable()
+    g.Check1()
+    g.Check2()
+
+    print(" MF3 ".center(50, "*"))
+    g = group.OhGroup(p2=3, instances=True)
+    for gi in g.instances:
+        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
+        #gi.Characters()
+        gi.MkClassTable()
+    g.PrintCharTable()
+    g.Check1()
+    g.Check2()
 
 if __name__ == "__main__":
     try:

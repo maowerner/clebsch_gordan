@@ -5,6 +5,8 @@ import sympy
 import scipy.misc
 
 import utils
+from group_generators import gen_G1, gen_T1, gen_H, gen_E
+from rotations import _all_rotations
 
 # lookup tables for the different groups
 listclasses = [["I", "6C4", "6C8p", "6C8", "8C6", "8C3", "12C4p", "J"],
@@ -76,7 +78,7 @@ tcheck = np.asarray(
            dtype=int)
 
 # local functions
-def _get_numbers(name):
+def _get_number(name):
     if name in ["I", "J"]:
         return 1
     elif name[:2].isdigit():
@@ -171,7 +173,7 @@ class OhGroup(object):
 
         self.instances = None
         if instances:
-            self.instances = [_get_instances(name, self.p2) for name in self.lirreps]
+            self.instances = [_get_instance(name, self.p2) for name in self.lirreps]
 
             # fill the character table
             for ir in self.instances:
@@ -200,8 +202,8 @@ class OhGroup(object):
         i = irrep.irid
         for k in range(self.nclasses):
             l = self.rclass[k]
-            elem = irrep.mx(self.lrotations.index(l))
-            tr = utils.clean_complex(np.trace(mx), self.prec)
+            elem = irrep.mx[self.lrotations.index(l)]
+            tr = utils.clean_complex(np.trace(elem, dtype=complex), self.prec)
             self.tchar[i,k] = tr
 
     def MkClassTable(self):
@@ -216,27 +218,27 @@ class OhGroup(object):
                         break
 
     def MkMultTbl(self):
-        mt = np.zeros((self.irorder, self.irorder), dtype=int)
-        for i in range(self.irorder):
+        mt = np.zeros((self.order, self.order), dtype=int)
+        for i in range(self.order):
             mxi = self.mx[i]
-            for j in range(self.irorder):
+            for j in range(self.order):
                 mxj = self.mx[j]
                 prodij = np.dot(mxi, mxj)
-                for k in range(self.irorder):
+                for k in range(self.order):
                     mxk = self.mx[k]
                     if utils._eq(prodij, mxk, self.prec):
                         mt[i,j] = k
-                    self.tmultir[i,j] = mt[i,j]
+                    self.tmult[i,j] = mt[i,j]
         # check if faithful
         if self.dim == 1:
             # 1D irreps are not faithful
             self.faithful = False
         else:
             self.faithful = True
-            for i in range(self.irorder):
+            for i in range(self.order):
                 row = np.unique(mt[i])
                 col = np.unique(mt[:,i])
-                if row.size != self.irorder or col.size != self.irorder:
+                if row.size != self.order or col.size != self.order:
                     self.faithful = False
                     break
 
@@ -256,12 +258,164 @@ class OhGroup(object):
             for j in range(self.nclasses):
                 res = 0.
                 for k in range(self.nirreps):
-                    res += self.tchar[k,i] * self.tcheck[k,j].conj()
-                self.tcheck[i,j] = res
+                    res += self.tchar[k,i] * self.tchar[k,j].conj()
+                self.tcheck2[i,j] = res
         # check against
         tmp = np.diag(np.ones((self.nirreps,))*self.order/np.asarray(self.sclass))
         return utils._eq(self.tcheck2, tmp)
 
+    def IsRepresentation(self):
+        if self.mx is None:
+            return False
+        else:
+            return True
+
+    def PrintMultTable(self):
+        print(" Character Table ".center(40, "*"))
+        print("_".center(40, "_"))
+        print(self.tmult)
+
+    def PrintCharTable(self):
+        print(" Character Table ".center(40, "*"))
+        print("_".center(40, "_"))
+        tmpstring="   "
+        for cla in self.lclasses:
+            tmpstring = "".join((tmpstring, cla.rjust(9," ")))
+        print(tmpstring)
+        for i in range(self.nirreps):
+            tmpstring = self.lirreps[i].rjust(3," ")
+            for j in range(self.nclasses):
+                #tmp = "%r" % self.tcharacters[i,j]
+                tmp = "%r" % sympy.nsimplify(self.tchar[i,j])
+                tmpstring = "".join((tmpstring, tmp.rjust(9," ")))
+            print(tmpstring)
+
+class OhA1(OhGroup):
+    def __init__(self, p2=0):
+        OhGroup.__init__(self, dimension=1, p2=p2)
+        self.irid = self.lirreps.index("A1")
+        self.mx.fill(1.)
+
+class OhA2(OhA1):
+    def __init__(self, p2=0):
+        OhA1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("A2")
+        if self.p2 == 0:
+            for k in range(7,19):
+                self.mx[k] *= -1.
+            for k in range(35,47):
+                self.mx[k] *= -1.
+        elif self.p2 == 1:
+            for k in range(7,15):
+                self.mx[k] *= -1.
+        elif self.p2 == 2:
+            for k in range(3,7):
+                self.mx[k] *= -1.
+        elif self.p2 == 3:
+            for k in range(5,11):
+                self.mx[k] *= -1.
+
+class OhB1(OhA1):
+    def __init__(self, p2=1):
+        OhA1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("B1")
+        if self.p2 == 1:
+            for k in range(3,7):
+                self.mx[k] *= -1.
+            for k in range(11,15):
+                self.mx[k] *= -1.
+        elif self.p2 == 2:
+            for k in range(1,5):
+                self.mx[k] *= -1.
+
+class OhB2(OhA1):
+    def __init__(self, p2=1):
+        OhA1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("B2")
+        if self.p2 == 1:
+            for k in range(3,11):
+                self.mx[k] *= -1.
+        elif self.p2 == 2:
+            for k in [1, 2, 5, 6]:
+                self.mx[k] *= -1.
+
+class OhK1(OhA1):
+    def __init__(self, p2=3):
+        OhA1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("K1")
+        if self.p2 == 3:
+            for k in [1, 2, 11]:
+                self.mx[k] *= -1.
+            for k in [5, 6, 7]:
+                self.mx[k] *= 1.j
+            for k in [8, 9, 10]:
+                self.mx[k] *= -1.j
+
+class OhK2(OhK1):
+    def __init__(self, p2=3):
+        OhK1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("K2")
+        if self.p2 == 3:
+            for k in range(5,11):
+                self.mx[k] *= -1.
+
+class OhT1(OhGroup):
+    def __init__(self, p2=0):
+        OhGroup.__init__(self, dimension=3, p2=p2)
+        self.irid = self.lirreps.index("T1")
+        for i, k in enumerate(self.lrotations):
+            self.mx[i] = gen_T1(_all_rotations[k])
+
+class OhT2(OhT1):
+    def __init__(self, p2=0):
+        OhT1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("T2")
+        for k in range(7,19):
+            self.mx[k] *= -1
+        for k in range(35,47):
+            self.mx[k] *= -1
+
+class OhE(OhGroup):
+    def __init__(self, p2=0):
+        OhGroup.__init__(self, dimension=2, p2=p2)
+        self.irid = self.lirreps.index("E")
+        self.mx = gen_E(self.p2)
+
+class OhG1(OhGroup):
+    def __init__(self, p2=0):
+        OhGroup.__init__(self, dimension=2, p2=p2)
+        self.irid = self.lirreps.index("G1")
+        for i, k in enumerate(self.lrotations):
+            self.mx[i] = gen_G1(_all_rotations[k])
+        if self.p2 == 1:
+            for k in range(7,15):
+                self.mx[k] *= -1
+        elif self.p2 == 2:
+            for k in range(3,7):
+                self.mx[k] *= -1
+        elif self.p2 == 3:
+            for k in range(5,11):
+                self.mx[k] *= -1
+
+class OhG2(OhG1):
+    def __init__(self, p2=0):
+        OhG1.__init__(self, p2=p2)
+        self.irid = self.lirreps.index("G2")
+        if p2 == 0:
+            for k in range(7,19):
+                self.mx[k] *= -1
+            for k in range(35,47):
+                self.mx[k] *= -1
+        elif p2 == 1:
+            for k in range(3,11):
+                self.mx[k] *= -1
+
+class OhH(OhGroup):
+    def __init__(self, p2=0):
+        OhGroup.__init__(self, dimension=4, p2=p2)
+        self.irid = self.lirreps.index("H")
+        for i, k in enumerate(self.lrotations):
+            self.mx[i] = gen_H(_all_rotations[k])
 
 if __name__ == "__main__":
     print("for checks execute the test script")
