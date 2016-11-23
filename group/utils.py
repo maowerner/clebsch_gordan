@@ -5,7 +5,7 @@ import numpy as np
 def clean_complex(data, prec=1e-6):
     _data = np.asarray(data)
     for x in np.nditer(_data, op_flags=["readwrite"]):
-        tmp = complex(0., 0.)
+        tmp = x.copy()
         if np.abs(x) < prec:
             tmp = complex(0.,0.)
         else:

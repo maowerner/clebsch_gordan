@@ -5,14 +5,10 @@ import numpy as np
 import utils
 
 # Pauli matrices as generator for 2D representations
-_pauli_matrices = [np.identity(2, dtype=np.complex_), np.zeros((2,2), dtype=np.complex_),\
-        np.zeros((2,2), dtype=np.complex_), np.zeros((2,2), dtype=np.complex_)]
-_pauli_matrices[1][0,1] = 1.
-_pauli_matrices[1][1,0] = 1.
-_pauli_matrices[2][1,0] = 1.j
-_pauli_matrices[2][0,1] = -1.j
-_pauli_matrices[3][0,0] = 1.
-_pauli_matrices[3][1,1] = -1.
+_pauli_matrices = [np.identity(2, dtype=complex)]
+_pauli_matrices.append(np.asarray([[0., 1.],[1., 0.]], dtype=complex))
+_pauli_matrices.append(np.asarray([[0., -1.j],[1.j, 0.]], dtype=complex))
+_pauli_matrices.append(np.asarray([[1., 0.],[0., -1.]], dtype=complex))
 
 def gen_G1(rotation):
     prec = 1e-6

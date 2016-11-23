@@ -12,6 +12,8 @@ class RotObj(object):
         self.omega = omega
 
         self.norm = np.sqrt(np.sum(np.abs(vector)))
+        if self.norm < 1e-10:
+            raise RuntimeError("Cannot work with zero vector")
         self.theta = np.arccos(vector[2]/self.norm)
         self.phi = np.arctan2(vector[1], vector[0])
         self.vector_norm = vector / self.norm
@@ -42,8 +44,9 @@ class RotObj(object):
         #print(sqfac1)
         if m1+m2 >= 0:
             res = 0.
-            for s in range(0, 50):
-            #for s in range(min(j-m1, j-m2)+1):
+            send = min(j-m1, j-m2)
+            #for s in range(0, 50):
+            for s in range(send+1):
                 fac = np.asarray([s, s+m1+m2, j-m1-s, j-m2-s])
                 if np.any(fac < 0):
                     continue
@@ -56,8 +59,9 @@ class RotObj(object):
             res *= tmp1*tmp2
         else:
             res = 0.
-            for s in range(0, 50):
-            #for s in range(min(j+m1, j+m2)+1):
+            send = min(j+m1, j+m2)
+            #for s in range(0, 50):
+            for s in range(send+1):
                 fac = np.asarray([s, s-m1-m2, j+m1-s, j+m2-s])
                 if np.any(fac < 0):
                     continue
