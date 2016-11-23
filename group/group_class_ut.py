@@ -6,9 +6,19 @@ import numpy as np
 
 import group_class as gc
 
+def mycheck(d1, d2, msg=None):
+    c = np.isclose(d1,d2)
+    if not np.all(c):
+        #if msg is None:
+        #    raise unittest.TestCase.failureException(msg)
+        #else:
+        string = "Arrays are not close elementwise."
+        raise unittest.TestCase.failureException(string)
+
 class TestOhGroup_CMF(unittest.TestCase):
     def setUp(self):
         self.group = gc.OhGroup()
+        self.addTypeEqualityFunc(np.ndarray, mycheck)
 
     def test_attributes(self):
         self.assertEqual(self.group.prec, 1e-6)
@@ -53,6 +63,7 @@ class TestOhGroup_CMF(unittest.TestCase):
 class TestOhGroup_CMF_Instances(unittest.TestCase):
     def setUp(self):
         self.group = gc.OhGroup(instances=True)
+        self.addTypeEqualityFunc(np.ndarray, mycheck)
 
     def test_instances(self):
         self.assertIsNotNone(self.group.instances)
@@ -77,12 +88,18 @@ class TestOhGroup_CMF_Instances(unittest.TestCase):
 
     def test_check1(self):
         tmp = 48*np.identity(8)
-        self.assertTrue(np.array_equal(tmp, self.group.tcheck1))
+        self.assertEqual(tmp, self.group.tcheck1)
 
     def test_check2(self):
         tmp = [1, 6, 6, 6, 8, 8, 12, 1]
-        tmp = np.diag(np.ones((8,))*48*np.asarray(tmp))
-        self.assertTrue(np.array_equal(tmp, self.group.tcheck2))
+        tmp = np.diag(np.ones((8,))*48/np.asarray(tmp))
+        self.assertEqual(tmp, self.group.tcheck2)
+
+    def test_A1(self):
+        gA1 = self.group.instances[0]
+        self.assertEqual(np.ones((48,1,1), dtype=complex), gA1.mx)
+        self.assertEqual(0, gA1.irid)
+        self.assertEqual(1, gA1.dim)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -6,19 +6,10 @@ import numpy as np
 
 import utils as ut
 
-def mycheck(d1, d2, msg=None):
-    c = np.isclose(d1,d2)
-    if not np.all(c):
-        if msg is None:
-            raise self.failureException(msg)
-        else:
-            string = "Arrays are not close elementwise."
-            raise self.failureException(string)
-
 class TestCleanComplex(unittest.TestCase):
     def setUp(self):
         self.data = np.zeros((2,2), dtype=complex)
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_matrix_ones(self):
         self.data.fill(1.)

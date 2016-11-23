@@ -30,3 +30,12 @@ def _eq(data1, data2=None, prec=1e-6):
         return np.all(np.abs(data1) < prec)
     else:
         return np.all(np.abs(data1-data2) < prec)
+
+def check_array(d1, d2, msg=None):
+    c = np.isclose(d1,d2)
+    if not np.all(c):
+        if msg is None:
+            raise self.failureException(msg)
+        else:
+            string = "Arrays are not close elementwise."
+            raise self.failureException(string)
