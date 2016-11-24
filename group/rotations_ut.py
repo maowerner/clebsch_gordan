@@ -4,12 +4,14 @@
 import unittest
 import numpy as np
 
+import utils
 import rotations as rot
 
 _prec=1e-10
 
 class TestRotObj_Functions(unittest.TestCase):
     def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
         # vector, norm, rotation angle
         self.v = np.asarray([1., 1., 0.])
         self.n = np.sqrt(2.)
@@ -22,7 +24,7 @@ class TestRotObj_Functions(unittest.TestCase):
 
     def test_get_functions(self):
         tmp = self.r.get_vector()
-        self.assertTrue(np.array_equal(tmp, self.v/self.n))
+        self.assertEqual(tmp, self.v/self.n)
         self.assertEqual(self.o, self.r.get_omega())
         self.assertTupleEqual((self.t, self.p), self.r.get_angles())
 
@@ -55,7 +57,7 @@ class TestRotObj_Functions(unittest.TestCase):
     def test_u_matrix_0(self):
         res_theo = np.ones((1,1), dtype=complex)
         res = self.r.u_matrix(0)
-        self.assertTrue(np.array_equal(res_theo, res))
+        self.assertEqual(res_theo, res)
 
     def test_u_matrix_1(self):
         res_theo = np.zeros((3,3), dtype=complex)
@@ -63,7 +65,24 @@ class TestRotObj_Functions(unittest.TestCase):
         res_theo[0,2]= -1.j
         res_theo[2,0]= +1.j
         res = self.r.u_matrix(1)
-        self.assertTrue(np.all(np.isclose(res_theo, res)))
+        self.assertEqual(res_theo, res)
+
+    def test_rotate_vector_parallel(self):
+        vec = self.v*(2*np.sqrt(2)-1.)
+        res = self.r.rot_vector(self.v)
+        self.assertEqual(res, vec)
+
+    def test_rotate_vector_perpendicular(self):
+        vec = np.asarray([1., -1., 0])
+        res_theo = -vec
+        res = self.r.rot_vector(vec)
+        self.assertEqual(res, res_theo)
+
+    def test_rotate_vector_100(self):
+        vec = np.asarray([1., 0., 0])
+        res_theo = vec*(np.sqrt(2)-1.)
+        res = self.r.rot_vector(vec)
+        self.assertEqual(res, res_theo)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

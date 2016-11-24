@@ -1,5 +1,6 @@
 """Helper functions used in the package"""
 
+import unittest
 import numpy as np
 
 def clean_complex(data, prec=1e-6):
@@ -34,8 +35,9 @@ def _eq(data1, data2=None, prec=1e-6):
 def check_array(d1, d2, msg=None):
     c = np.isclose(d1,d2)
     if not np.all(c):
-        if msg is None:
-            raise self.failureException(msg)
+        if msg is not None:
+            raise unittest.TestCase.failureException(msg)
         else:
-            string = "Arrays are not close elementwise."
-            raise self.failureException(string)
+            string = ["Arrays are not close elementwise.\n\n",
+                "array 1:\n%r\n\narray 2:\n%r" % (d1,d2)]
+            raise unittest.TestCase.failureException("".join(string))

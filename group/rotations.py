@@ -37,6 +37,14 @@ class RotObj(object):
     def get_angles(self):
         return (self.theta, self.phi)
 
+    def rot_vector(self, vec):
+        # implements Rodrigues formula
+        par = vec*np.dot(vec, self.vector_norm)
+        per = np.cross(vec, self.vector_norm)
+        si = np.sin(self.omega)
+        co = np.cos(self.omega)
+        return vec*co + per*si + par*(1.-co)
+
     def u_element(self, j, m1, m2):
         prefactor = np.exp(-1.j*(m1-m2)*self.phi)
         fac1 = scipy.misc.factorial([j+m1, j-m1, j+m2, j-m2])
