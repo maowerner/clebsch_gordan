@@ -68,9 +68,8 @@ class TestRotObj_Functions(unittest.TestCase):
         self.assertEqual(res_theo, res)
 
     def test_rotate_vector_parallel(self):
-        vec = self.v*(2*np.sqrt(2)-1.)
         res = self.r.rot_vector(self.v)
-        self.assertEqual(res, vec)
+        self.assertEqual(res, self.v)
 
     def test_rotate_vector_perpendicular(self):
         vec = np.asarray([1., -1., 0])
@@ -80,9 +79,15 @@ class TestRotObj_Functions(unittest.TestCase):
 
     def test_rotate_vector_100(self):
         vec = np.asarray([1., 0., 0])
-        res_theo = vec*(np.sqrt(2)-1.)
+        res_theo = np.asarray([0., 1., 0])
         res = self.r.rot_vector(vec)
         self.assertEqual(res, res_theo)
+
+    def test_rotate_vector_00m1(self):
+        vec = np.asarray([0., 0., -1.])
+        r = rot.RotObj(-vec, np.pi)
+        res = r.rot_vector(vec)
+        self.assertEqual(res, vec)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
