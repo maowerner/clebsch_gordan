@@ -83,7 +83,7 @@ class TestRotObj_Functions(unittest.TestCase):
         res = self.r.rot_vector(vec)
         self.assertEqual(res, res_theo)
 
-class TestAllRotations(unittest.TestCase):
+class TestAllRotations_100(unittest.TestCase):
     def setUp(self):
         self.v = np.asarray([1.,0.,0.])
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -136,6 +136,65 @@ class TestAllRotations(unittest.TestCase):
         elements = [8, 17, 20, 25, 29, 32, 40, 46]
         res_theo = np.zeros((3,))
         res_theo[2] = -1.
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (
+                    el, self.v, res, res_theo)
+            self.assertEqual(res_theo, res, msg=msg)
+
+class TestAllRotations_001(unittest.TestCase):
+    def setUp(self):
+        self.v = np.asarray([0.,0.,1.])
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_rotations_to_self(self):
+        elements = [0, 3, 6, 9, 12, 15, 18, 47]
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r" % (el, self.v, res)
+            self.assertEqual(self.v, res, msg=msg)
+
+    def test_rotations_to_neg_self(self):
+        elements = [1, 2, 4, 5, 37, 38, 43, 44]
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r" % (el, self.v, res)
+            self.assertEqual(-self.v, res, msg="element %d failed" % el)
+
+    def test_rotations_to_y(self):
+        elements = [10, 13, 20, 23, 27, 32, 35, 41]
+        res_theo = np.zeros((3,))
+        res_theo[1] = 1.
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (
+                    el, self.v, res, res_theo)
+            self.assertEqual(res_theo, res, msg=msg)
+
+    def test_rotations_to_neg_y(self):
+        elements = [7, 16, 22, 25, 29, 34, 36, 42]
+        res_theo = np.zeros((3,))
+        res_theo[1] = -1.
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (
+                    el, self.v, res, res_theo)
+            self.assertEqual(res_theo, res, msg=msg)
+
+    def test_rotations_to_x(self):
+        elements = [8, 17, 19, 26, 30, 31, 39, 45]
+        res_theo = np.zeros((3,))
+        res_theo[0] = 1.
+        for el in elements:
+            res = rot._all_rotations[el].rot_vector(self.v)
+            msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (
+                    el, self.v, res, res_theo)
+            self.assertEqual(res_theo, res, msg=msg)
+
+    def test_rotations_to_neg_x(self):
+        elements = [11, 14, 21, 24, 28, 33, 40, 46]
+        res_theo = np.zeros((3,))
+        res_theo[0] = -1.
         for el in elements:
             res = rot._all_rotations[el].rot_vector(self.v)
             msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (

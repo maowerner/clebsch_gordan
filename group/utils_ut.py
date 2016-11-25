@@ -9,7 +9,7 @@ import utils as ut
 class TestCleanComplex(unittest.TestCase):
     def setUp(self):
         self.data = np.zeros((2,2), dtype=complex)
-        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+        self.addTypeEqualityFunc(np.ndarray, ut.check_array)
 
     def test_matrix_ones(self):
         self.data.fill(1.)
@@ -36,6 +36,41 @@ class TestCleanComplex(unittest.TestCase):
         self.data.fill(1e-20)
         res = ut.clean_complex(self.data)
         self.assertEqual(self.data, res)
+
+class TestEq(unittest.TestCase):
+    def test_same_vectors(self):
+        vec = np.ones((3,))
+        self.assertTrue(ut._eq(vec, vec))
+
+    def test_different_vectors(self):
+        vec = np.ones((3,))
+        self.assertFalse(ut._eq(vec, 2*vec))
+
+    def test_zero_vector(self):
+        vec = np.zeros((3,))
+        self.assertTrue(ut._eq(vec))
+
+    def test_nonzero_vector(self):
+        vec = np.zeros((3,))
+        vec[1] += 1.
+        self.assertFalse(ut._eq(vec))
+
+    def test_high_precision(self):
+        vec = np.zeros((3,))
+        self.assertTrue(ut._eq(vec, prec=1e-20))
+
+    def test_high_precision_nonzero(self):
+        vec = np.zeros((3,)) + 1e-16
+        self.assertFalse(ut._eq(vec, prec=1e-20))
+
+    def test_same_vectors_complex(self):
+        vec = np.ones((3,), dtype=complex) + 0.5j
+        self.assertTrue(ut._eq(vec, vec))
+
+    def test_different_vectors_complex(self):
+        vec = np.ones((3,), dtype=complex) + 0.5j
+        vec1 = np.ones((3,), dtype=complex)*0.5 + 2.j
+        self.assertFalse(ut._eq(vec, vec1))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
