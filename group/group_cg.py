@@ -41,7 +41,7 @@ class OhCG(object):
         # is set to None if at least one group is None
         self.coset1 = self.gen_coset(self.g1)
         self.coset2 = self.gen_coset(self.g2)
-        print(self.coset1)
+        #print(self.coset1)
         #print(self.coset2)
 
         # generate the allowed momentum combinations and sort them into cosets
@@ -187,7 +187,7 @@ class OhCG(object):
         res1 = []
         res2 = []
         for p, p1, p2 in self.allmomenta:
-            print("momentum coset search")
+            #print("momentum coset search")
             done = False
             # check if already in list
             for r in res1:
@@ -196,18 +196,18 @@ class OhCG(object):
                     break
             # if not get coset
             if not done:
-                print("%r not in list" % p1)
+                #print("%r not in list" % p1)
                 for i, c in enumerate(self.coset1):
                     t = self.check_coset(self.pref1, p1, c)
-                    print(t)
+                    #print(t)
                     if np.all(t):
-                        print(" in coset %d" %i)
+                        #print(" in coset %d" %i)
                         res1.append((p1, i))
                         break
-                    else:
-                        print(" not in coset %d" %i)
-            else:
-                print("%r already in list" % p1)
+                    #else:
+                    #    print(" not in coset %d" %i)
+            #else:
+            #    print("%r already in list" % p1)
             done = False
             # check if already in list
             for r in res2:
@@ -224,6 +224,8 @@ class OhCG(object):
         if len(self.smomenta1) != len(self.momenta1):
             print("some vectors not sorted")
         self.smomenta2 = res2
+        if len(self.smomenta2) != len(self.momenta2):
+            print("some vectors not sorted")
 
     def check_coset(self, pref, p, coset):
         res = []
@@ -294,11 +296,12 @@ class OhCG(object):
                 continue
             result.append(res)
         result = np.asarray(result)
-        # check if any coefficients are non-zero
+        # check if all coefficients are zero
         if utils._eq(result):
-            return irname, None, None
-        # orthonormalize the basis
-        cgs = self._norm_cgs(result)
+            cgs = None
+        else:
+            # orthonormalize the basis
+            cgs = self._norm_cgs(result)
         self.irreps.append(irname)
         self.cgs.append(cgs)
         return irname, cgs, self.allmomenta
@@ -306,8 +309,8 @@ class OhCG(object):
     def _norm_cgs(self, data):
         # prepare result array
         res = np.zeros(data.shape[:-1], dtype=complex)
-        # set starting variables
-        mup = 0
+        # sort by final momentum, so that all final momenta are
+        # normalized seperately
         ind = [[] for x in self.momenta]
         for i, m in enumerate(self.allmomenta):
             for j, fm in enumerate(self.momenta):
@@ -315,6 +318,8 @@ class OhCG(object):
                     ind[j].append(i)
                     break
         # norm the data
+        # set starting variables
+        mup = 0
         for i in range(data.shape[1]):
             for j in ind:
                 tmp = data[j,i,mup]

@@ -8,7 +8,6 @@ import utils
 import group_class as gc
 import group_cg as gcg
 
-@unittest.skip("testing the other class")
 class TestCG_CMF(unittest.TestCase):
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -236,13 +235,17 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
 
     def test_sort_momenta(self):
-        tmp = np.zeros((3,))
         self.assertEqual(len(self.gc.smomenta1), 6)
-        self.assertEqual(self.gc.smomenta1[0][0], tmp)
-        self.assertEqual(self.gc.smomenta1[0][1], 0)
         self.assertEqual(len(self.gc.smomenta2), 6)
-        self.assertEqual(self.gc.smomenta2[0][0], tmp)
-        self.assertEqual(self.gc.smomenta2[0][1], 0)
+
+        tmp1 = [2, 1, 0, 0, 1, 2]
+        tmp2 = [[-1.,0.,0.], [0.,-1.,0.], [0.,0.,-1.],[0.,0.,1.], [0.,1.,0.], [1.,0.,0.]]
+        tmp2 = [np.asarray(x) for x in tmp2]
+        for i in range(len(self.gc.smomenta1)):
+            self.assertEqual(self.gc.smomenta1[i][0], tmp2[i])
+            self.assertEqual(self.gc.smomenta1[i][1], tmp1[i])
+            self.assertEqual(self.gc.smomenta2[i][0], tmp2[5-i])
+            self.assertEqual(self.gc.smomenta2[i][1], tmp1[5-i])
 
     def test_check_coset_1(self):
         # check first subset of elements
@@ -304,30 +307,31 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         self.assertFalse(np.all(res))
 
     def test_check_all_cosets(self):
-        tmp = np.zeros((3,))
-        res = self.gc.check_all_cosets(tmp, tmp, tmp)
-        self.assertEqual(res, (0,0,-1,-1))
+        tmp0 = np.zeros((3,))
+        tmp1 = np.asarray([1., 0. ,0.])
+        res = self.gc.check_all_cosets(tmp0, tmp1, tmp1)
+        self.assertEqual(res, (2,2,-1,-1))
 
     def test_calc_pion_cg_A1(self):
         tmp1 = np.zeros((3,))
         tmp2 = np.asarray([0.,0.,1.])
         res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "A1")
-        cg_theo = np.ones((1,1), dtype=complex)
+        cg_theo = np.ones((1,1), dtype=complex)/3.
         self.assertEqual(res, cg_theo)
 
     def test_calc_pion_cg_A2(self):
         tmp1 = np.zeros((3,))
         tmp2 = np.asarray([0.,0.,1.])
         res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "A2")
-        cg_theo = np.ones((1,1), dtype=complex)
+        cg_theo = np.zeros((1,1), dtype=complex)
         self.assertEqual(res, cg_theo)
 
     def test_calc_pion_cg_E(self):
         tmp1 = np.zeros((3,))
         tmp2 = np.asarray([0.,0.,1.])
         res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "E")
-        cg_theo = np.zeros((2,2), dtype=complex)
-        self.assertEqual(res, cg_theo, msg="might fail due to phase")
+        cg_theo = np.asarray([[1., 0.], [-np.sqrt(3), 0.]], dtype=complex)
+        self.assertEqual(res/res[0,0], cg_theo, msg="might fail due to phase")
         #self.assertEqual(res, cg_theo)
 
     def test_calc_pion_cg_T1(self):
@@ -348,7 +352,7 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
 
     def test_get_pion_cg_A1(self):
         res = self.gc.get_pion_cg("A1")
-        res_theo = np.ones((1,1), dtype=complex)
+        res_theo = np.ones((6,1), dtype=complex)/np.sqrt(6)
         self.assertEqual(len(res), 3)
         self.assertEqual(res[0], "A1")
         self.assertEqual(res[1], res_theo)

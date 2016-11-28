@@ -39,8 +39,8 @@ class RotObj(object):
 
     def rot_vector(self, vec):
         # implements Rodrigues formula
-        par = self.vector_norm*np.dot(self.vector_norm, vec)
-        per = np.cross(self.vector_norm, vec)
+        par = self.vector_norm*np.dot(vec, self.vector_norm)
+        per = np.cross(vec, self.vector_norm)
         si = np.sin(self.omega)
         co = np.cos(self.omega)
         return vec*co + per*si + par*(1.-co)
