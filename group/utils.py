@@ -2,6 +2,7 @@
 
 import unittest
 import numpy as np
+import scipy
 
 def clean_complex(data, prec=1e-6):
     _data = np.asarray(data)
@@ -41,3 +42,6 @@ def check_array(d1, d2, msg=None):
             string = ["Arrays are not close elementwise.\n\n",
                 "array 1:\n%r\n\narray 2:\n%r" % (d1,d2)]
             raise unittest.TestCase.failureException("".join(string))
+
+def binomial(n, k):
+    return scipy.misc.comb(n, k)

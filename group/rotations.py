@@ -106,5 +106,10 @@ _all_rotations = [RotObj([1,0,0], 0),
         RotObj([1,-1,0], -np.pi), RotObj([1,0,1],  -np.pi), RotObj([-1,0,1], -np.pi),
         RotObj([1,1,1], 2*np.pi)]
 
+class NewQuaternions(object):
+    def __init__(self):
+        self.members = np.zeros((5,))
+        self.members[-1] = 1.
+
 if __name__ == "__main__":
     print("for checks execute the test script")
