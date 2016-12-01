@@ -113,5 +113,57 @@ class QNew(object):
                     1-2*(_q[1]**2 + _q[2]**2)/n]])
         return res
 
+    def R(self, j, mp, m):
+        """compute transformation matrix element 
+         j         j    0   1   2   3
+        R   (Q) = R   (Q , Q , Q , Q )
+         m'm       m'm
+        
+                  -j
+        in        __
+             j   \     j   j
+        [R.u]  = /__  u   R   (Q) ,
+             m   m'=j  m'  m'm
+        
+        according to the formula:
+                __    ___________________________
+         j     \     /(j-m')(j+m'  )(j-m   )(j+m)    j+m-k    j-m'-k   m'-m+k     k
+        R    = /__ \/ ( k  )(m'-m+k)(m'-m+k)( k ) (a)     (a*)      (b)      (-b*)
+         m'm    k
+                    0     3          2     1
+        where a := Q - i.Q  ; b := -Q  -i.Q  .
+        
+        first three arguments to be provided as multiplicities:
+        [J] = 2j+1, [M] = 2m+1, [MP] = 2m'+1, these are always integer
+        [-3/2] --> -2; [-1] --> -1; [-1/2] --> 0; [0] --> 1; [1/2] --> 2, etc.
+        """
+        a   = complex( self.q[0], -self.q[3] ) 
+        ac  = complex( self.q[0],  self.q[3] ) #   complex conjugate of a
+        b   = complex(-self.q[2], -self.q[1] )
+        mbc = complex( self.q[2], -self.q[1] ) # - complex conjugate of b
+        res = complex( 0.0 )
+        j_p_mp = ( j + mp - 2 ) // 2 # j+m'
+        j_m_mp = ( j - mp ) // 2     # j-m'
+        j_p_m  = ( j + m  - 2 ) // 2 # j+m
+        j_m_m  = ( j - m ) // 2      # j-m
+        if j_p_mp < 0 or j_m_mp < 0 or j_p_m < 0 or j_m_m < 0:
+            return res
+
+        # prepare constant arrays
+        n = np.asarray([j_m_mp, j_p_mp, j_m_m, j_p_m])
+        kp = np.asarray([0, mp_m_m, mp_m_m, 0])
+        _a = np.asarray([a, ac, b, mbc])
+        aexp = np.asarray([j_p_m, j_m_mp, mp_m_m, 0])
+        # get range for loop
+        k_mx = j_p_m if (j_p_m < j_m_mp) else j_m_mp
+        k_mn = -j_p_mp+j_p_m if (-j_p_mp+j_p_m > 0) else 0
+        for k in range(k_mn, k_mx+1):
+            _k = kp + k
+            factor = np.sqrt(np.prod(utils.binomial(n, _k))*complex(1.))
+            _aexp = aexp + np.asarray([-k, -k, k, k])
+            prod = np.prod(np.power(_a, _aexp))
+            res += factor * prod
+        return res
+
 if __name__ == "__main__":
     print("for checks execute the test script")
