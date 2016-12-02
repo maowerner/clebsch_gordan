@@ -7,7 +7,8 @@ import numpy as np
 # Second Edition (corrected), Wien (2011)  
 V12 = np.sqrt(0.5) # sqrt(1/2)
 # [[ lambda, Lambda_1, Lambda_2, Lambda_3 ]]
-qPar = [[ 1.0, 0.0, 0.0, 0.0 ],
+qPar = np.asarray(
+       [[ 1.0, 0.0, 0.0, 0.0 ],
         [ 0.0, 1.0, 0.0, 0.0 ],
         [ 0.0, 0.0, 1.0, 0.0 ],
         [ 0.0, 0.0, 0.0, 1.0 ],
@@ -30,7 +31,7 @@ qPar = [[ 1.0, 0.0, 0.0, 0.0 ],
         [ 0.0, V12, 0.0, V12 ],
         [ 0.0, 0.0,-V12,-V12 ],
         [ 0.0, V12, 0.0,-V12 ],
-        [ 0.0, 0.0,-V12, V12 ]]
+        [ 0.0, 0.0,-V12, V12 ]])
 
 class QNew(object):
     def __init__(self):
@@ -46,21 +47,20 @@ class QNew(object):
         tmp.i = _inv
         return tmp
 
-    def __add__(self, other):
-        if isinstance(other, QNew):
-            tmpvec = self.q + other.q
-            tmpinv = self.i * other.i
-            return QNew.create_from_vector(tmpvec, tmpinv)
-        else:
-            raise NotImplementedError
+    def __eq__(self, other):
+        if not isinstance(other, QNew):
+            return False
+        if np.allclose(self.q, other.q) and self.i == other.i:
+            return True
+        return False
 
-    def __iadd__(self, other):
-        if isinstance(other, QNew):
-            self.q += other.q
-            self.i *= other.i
-            return self
-        else:
-            raise NotImplementedError
+    def __ne__(self, other):
+        print("called __ne__")
+        if not isinstance(other, QNew):
+            return True
+        if not np.allclose(self.q, other.q) or self.i != other.i:
+            return True
+        return False
 
     def __abs__(self):
         return np.sqrt(np.dot(self.q, self.q))

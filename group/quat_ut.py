@@ -23,20 +23,6 @@ class TestQNew(unittest.TestCase):
         self.assertEqual(q.q, self.vec)
         self.assertEqual(q.i, inv)
 
-    def test_add(self):
-        q1 = quat.QNew.create_from_vector(self.vec, 1)
-        q2 = quat.QNew.create_from_vector(self.vec, 1)
-        q3 = q1 + q2
-        self.assertEqual(q3.q, 2*self.vec)
-        self.assertEqual(q3.i, 1)
-
-    def test_iadd(self):
-        q1 = quat.QNew.create_from_vector(self.vec, 1)
-        q2 = quat.QNew.create_from_vector(self.vec, 1)
-        q1 += q2
-        self.assertEqual(q1.q, 2*self.vec)
-        self.assertEqual(q1.i, 1)
-
     def test_neg(self):
         q1 = quat.QNew.create_from_vector(self.vec, 1)
         q1  = -q1
@@ -62,6 +48,21 @@ class TestQNew(unittest.TestCase):
         q2 = q1.conj()
         self.assertEqual(q2.q, res_theo)
         self.assertEqual(q2.i, 1)
+
+    def test_equal(self):
+        q1 = quat.QNew.create_from_vector(self.vec, 1)
+        q2 = quat.QNew.create_from_vector(self.vec, 1)
+
+        self.assertTrue(q1 == q2)
+        self.assertFalse(q1 != q2)
+
+    def test_not_equal(self):
+        q1 = quat.QNew.create_from_vector(self.vec, 1)
+        q2 = quat.QNew.create_from_vector(self.vec+1, 1)
+
+        self.assertFalse(q1 == q2)
+        self.assertTrue(q1 != q2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
