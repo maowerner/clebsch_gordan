@@ -5,15 +5,7 @@ import unittest
 import numpy as np
 
 import group_class as gc
-
-def mycheck(d1, d2, msg=None):
-    c = np.isclose(d1,d2)
-    if not np.all(c):
-        #if msg is None:
-        #    raise unittest.TestCase.failureException(msg)
-        #else:
-        string = "Arrays are not close elementwise."
-        raise unittest.TestCase.failureException(string)
+import utils
 
 class TestOhGroup_CMF(unittest.TestCase):
     @classmethod
@@ -21,7 +13,7 @@ class TestOhGroup_CMF(unittest.TestCase):
         self.group = gc.OhGroup()
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_attributes(self):
         self.assertEqual(self.group.prec, 1e-6)
@@ -69,7 +61,7 @@ class TestOhGroup_CMF_Instances(unittest.TestCase):
         self.group = gc.OhGroup(instances=True)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_instances(self):
         self.assertIsNotNone(self.group.instances)
@@ -119,7 +111,7 @@ class TestOhGroup_MF1(unittest.TestCase):
         self.group = gc.OhGroup(p2=1)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_attributes(self):
         self.assertEqual(self.group.prec, 1e-6)
@@ -167,7 +159,7 @@ class TestOhGroup_MF1_Instances(unittest.TestCase):
         self.group = gc.OhGroup(p2=1, instances=True)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_instances(self):
         self.assertIsNotNone(self.group.instances)
@@ -216,7 +208,7 @@ class TestOhGroup_MF2(unittest.TestCase):
         self.group = gc.OhGroup(p2=2)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_attributes(self):
         self.assertEqual(self.group.prec, 1e-6)
@@ -264,7 +256,7 @@ class TestOhGroup_MF2_Instances(unittest.TestCase):
         self.group = gc.OhGroup(p2=2, instances=True)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_instances(self):
         self.assertIsNotNone(self.group.instances)
@@ -311,7 +303,7 @@ class TestOhGroup_MF3(unittest.TestCase):
         self.group = gc.OhGroup(p2=3)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_attributes(self):
         self.assertEqual(self.group.prec, 1e-6)
@@ -359,7 +351,7 @@ class TestOhGroup_MF3_Instances(unittest.TestCase):
         self.group = gc.OhGroup(p2=3, instances=True)
 
     def setUp(self):
-        self.addTypeEqualityFunc(np.ndarray, mycheck)
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_instances(self):
         self.assertIsNotNone(self.group.instances)

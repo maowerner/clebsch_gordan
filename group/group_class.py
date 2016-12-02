@@ -3,6 +3,7 @@
 import numpy as np
 import sympy
 import scipy.misc
+import itertools as it
 
 import utils
 from group_generators import gen_G1, gen_T1, gen_H, gen_E
