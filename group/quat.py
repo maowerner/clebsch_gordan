@@ -2,6 +2,8 @@
 
 import numpy as np
 
+import utils
+
 # quaternion parameters for the group O from Table 71.1 in:
 # Simon L. Altmann, Peter Herzig, "Point-Group Theory Tables", 
 # Second Edition (corrected), Wien (2011)  
@@ -151,19 +153,32 @@ class QNew(object):
             return res
 
         # prepare constant arrays
+        mp_m_m = j_p_mp - j_p_m
         n = np.asarray([j_m_mp, j_p_mp, j_m_m, j_p_m])
         kp = np.asarray([0, mp_m_m, mp_m_m, 0])
         _a = np.asarray([a, ac, b, mbc])
         aexp = np.asarray([j_p_m, j_m_mp, mp_m_m, 0])
         # get range for loop
-        k_mx = j_p_m if (j_p_m < j_m_mp) else j_m_mp
-        k_mn = -j_p_mp+j_p_m if (-j_p_mp+j_p_m > 0) else 0
+        k_mx = int(j_p_m if (j_p_m < j_m_mp) else j_m_mp)
+        k_mn = int(-j_p_mp+j_p_m if (-j_p_mp+j_p_m > 0) else 0)
         for k in range(k_mn, k_mx+1):
             _k = kp + k
             factor = np.sqrt(np.prod(utils.binomial(n, _k))*complex(1.))
             _aexp = aexp + np.asarray([-k, -k, k, k])
             prod = np.prod(np.power(_a, _aexp))
             res += factor * prod
+        return res
+
+    def R_matrix(self, j):
+        multi = int(2*j+1)
+        res = np.zeros((multi, multi), dtype=complex)
+        # the sorting is important, start at largest m
+        # and decrease
+        for im in range(multi):
+            m = j - im
+            for imp in range(multi):
+                mp = j - imp
+                res[im, imp] = self.R(multi, mp, m)
         return res
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 import unittest
 import numpy as np
-import scipy
+import scipy.misc
 
 def clean_complex(data, prec=1e-6):
     _data = np.asarray(data)
