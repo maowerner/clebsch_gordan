@@ -8,10 +8,10 @@ import group_class_quat as gc
 import group_class as gcold
 import utils
 
-class TestTO(unittest.TestCase):
+class TestTOh(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        self.group = gc.TO()
+        self.group = gc.TOh()
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -45,9 +45,9 @@ class TestTO(unittest.TestCase):
         self.assertFalse(res1)
         self.assertFalse(res2)
 
-    def test_su2_characters_j0(self):
-        res = self.group.characters_of_SU2(0, self.group.crep[0])
-        res_theo = np.zeros((8,))
+    def test_su2_characters_j1(self):
+        res = self.group.characters_of_SU2(1, self.group.crep[0])
+        res_theo = np.ones((8,))
         self.assertEqual(res, res_theo)
 
     def test_su2_characters_j2(self):
@@ -55,6 +55,21 @@ class TestTO(unittest.TestCase):
         sq2 = np.sqrt(2)
         res_theo = np.asarray([2.,0.,1.,sq2,0.,-2.,-1.,-sq2])
         self.assertEqual(res, res_theo)
+
+
+class TestTOhMF1(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        tmp = np.asarray([0., 0., 1.])
+        wi = False
+        debug = 1
+        self.group = gc.TOh(pref=tmp, withinversion=wi, debug=debug)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_working(self):
+        self.assertTrue(True)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

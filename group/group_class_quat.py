@@ -6,21 +6,17 @@ import itertools as it
 import utils
 import quat
 
-class TO(object):
-    def __init__(self, pref=None):
+class TOh(object):
+    def __init__(self, pref=None, withinversion=False, debug=0):
         self.name = "TO"
         self.npar = 24 # the parameters of the rotations
-        self.order = 2 * self.npar # order of the group npar *2 (conjugation)
+        self.pref = pref
+        self.withinversion = withinversion
+        self.debug = debug
         
-        # set the elements, twice in a row for correct ordering
-        self.elements = []
-        for el in quat.qPar:
-            self.elements.append(quat.QNew.create_from_vector(el, 1))
-        for el in quat.qPar:
-            self.elements.append(quat.QNew.create_from_vector(-el, 1))
-        # select elements when pref is given
-        if pref is not None:
-            pass
+        # set the elements
+        self.select_elements()
+        self.order = len(self.elements) # order of the group
 
         # set up multiplication table
         self.tmult = np.zeros((self.order, self.order), dtype=int)
@@ -42,6 +38,38 @@ class TO(object):
         self.irrepsname = []
         self.irrepdim = np.zeros((self.nclasses,), dtype=int)
         self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
+
+    def select_elements(self):
+        self.elements = []
+        # all possible elements for the double cover octahedral group
+        for el in quat.qPar:
+            self.elements.append(quat.QNew.create_from_vector(el, 1))
+        if self.withinversion:
+            for el in quat.qPar:
+                self.elements.append(quat.QNew.create_from_vector(el, -1))
+        for el in quat.qPar:
+            self.elements.append(quat.QNew.create_from_vector(-el, 1))
+        if self.withinversion:
+            for el in quat.qPar:
+                self.elements.append(quat.QNew.create_from_vector(-el, -1))
+        # select elements when pref is given
+        if self.pref is not None:
+            selected = []
+            elem = []
+            for k, el in enumerate(self.elements):
+                tmp = el.rotation_matrix().dot(self.pref)
+                c1 = utils._eq(tmp + self.pref)
+                c2 = utils._eq(tmp - self.pref)
+                if c1 or c2:
+                    selected.append(k)
+                    elem.append(el)
+            if self.debug > 0:
+                print("The group with P_ref = %r has %d elements:" % (
+                        self.pref.__str__(), len(elem)))
+                tmpstr = ["%d" % x for x in selected]
+                tmpstr = ", ".join(tmpstr)
+                print("[%s]" % tmpstr)
+            self.elements = elem
 
     def make_mult_table(self):
         for i in range(self.order):
@@ -194,7 +222,31 @@ class TO(object):
             tmpstr = ", ".join(tmpstr)
             print("class %2d: %s" % (i, tmpstr))
 
+class TOhRep(object):
+    def __init__(self, dimension, order, nclasses):
+        self.dim = dimension
+        self.irid = -1
+        self.name = " "
+        self.mx = np.zeros((order, self.dim, self.dim), dtype=complex)
+        self.char = np.zeros((nclasses,), dtype=complex)
+
+    def characters(self, representatives):
+        for i, r in enumerate(representatives):
+            self.char[i] = np.trace(self.mx[r])
+        return self.char
+
+    def is_representation(self, tmult):
+        n = self.mx.shape[0]
+        for i in range(n):
+            mxi = self.mx[i]
+            for j in range(n):
+                mxj = self.mx[j]
+                mxk = self.mx[tmult[i,j]]
+                mxij = mxi*mxj
+                if not utils._eq(mxij, mxk):
+                    return False
+        return True
+
 if __name__ == "__main__":
     print("for checks execute the test script")
-
 

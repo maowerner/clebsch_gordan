@@ -37,6 +37,7 @@ class QNew(object):
     def __init__(self):
         self.q = np.zeros((4,))
         self.i = int(1)
+        self.prec = 1e-6
 
     @classmethod
     def create_from_vector(cls, vector, inversion):
