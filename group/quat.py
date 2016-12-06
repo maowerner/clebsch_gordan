@@ -178,7 +178,7 @@ class QNew(object):
             m = j - im
             for imp in range(multi):
                 mp = j - imp
-                res[im, imp] = self.R(multi, mp, m)
+                res[im, imp] = self.R(multi, int(2*m+1), int(2*mp+1))
         return res
 
 if __name__ == "__main__":
