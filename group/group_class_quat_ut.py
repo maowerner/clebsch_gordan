@@ -8,6 +8,7 @@ import group_class_quat as gc
 import group_class as gcold
 import utils
 
+@unittest.skip("bla")
 class TestTOh(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -56,19 +57,83 @@ class TestTOh(unittest.TestCase):
         res_theo = np.asarray([2.,0.,1.,sq2,0.,-2.,-1.,-sq2])
         self.assertEqual(res, res_theo)
 
+class TestTOh_full(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.group = gc.TOh(withinversion=True, irreps=True, debug=2)
 
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_working(self):
+        self.assertTrue(True)
+
+class TestTOh_full_MF1(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.pref = np.asarray([0., 0., 1.])
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=2)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_working(self):
+        self.assertTrue(True)
+
+class TestTOh_full_MF2(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.pref = np.asarray([1., 1., 0.])
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=2)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_working(self):
+        self.assertTrue(True)
+
+class TestTOh_full_MF3(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.pref = np.asarray([1., 1., 1.])
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=2)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_working(self):
+        self.assertTrue(True)
+
+@unittest.skip("bla")
 class TestTOhMF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         tmp = np.asarray([0., 0., 1.])
         wi = False
         debug = 1
-        self.group = gc.TOh(pref=tmp, withinversion=wi, debug=debug)
+        self.group = gc.TOh(pref=tmp, withinversion=wi)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_working(self):
+        print(self.group.lclasses)
         self.assertTrue(True)
 
 if __name__ == "__main__":

@@ -76,6 +76,39 @@ class TestGenerators(unittest.TestCase):
         #self.assertEqual(res1, res2)
         # gen4D fails
 
+class TestAllElements(unittest.TestCase):
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+        np.set_printoptions(suppress=True)
+        self.elements = []
+        for i in range(24):
+            self.elements.append(quat.QNew.create_from_vector(quat.qPar[i], 1))
+        for i in range(24):
+            self.elements.append(quat.QNew.create_from_vector(quat.qPar[i], -1))
+        for i in range(24):
+            self.elements.append(quat.QNew.create_from_vector(-quat.qPar[i], 1))
+        for i in range(24):
+            self.elements.append(quat.QNew.create_from_vector(-quat.qPar[i], -1))
+
+    def test_1D_no_inversion(self):
+        res = gg.gen1D(self.elements)
+        res_theo = np.ones((len(self.elements), 1, 1), dtype=complex)
+        self.assertEqual(res, res_theo)
+
+    def test_1D_inversion(self):
+        res = gg.gen1D(self.elements, inv=True)
+        res_theo = np.ones((len(self.elements), 1, 1), dtype=complex)
+        for i in range(24, 48):
+            res_theo[i] *= -1
+        for i in range(72, 96):
+            res_theo[i] *= -1
+        self.assertEqual(res, res_theo)
+
+    def test_2D_no_inversion(self):
+        res = gg.gen2D(self.elements)
+        for i in res:
+            self.assertFalse(utils._eq(i))
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
 

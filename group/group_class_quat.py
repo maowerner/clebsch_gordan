@@ -2,12 +2,14 @@
 
 import numpy as np
 import itertools as it
+from timeit import default_timer as timer
 
 import utils
 import quat
+import group_generators_quat as gg
 
 class TOh(object):
-    def __init__(self, pref=None, withinversion=False, debug=0):
+    def __init__(self, pref=None, withinversion=False, debug=0, irreps=False):
         self.name = "TO"
         self.npar = 24 # the parameters of the rotations
         self.pref = pref
@@ -15,29 +17,58 @@ class TOh(object):
         self.debug = debug
         
         # set the elements
+        # defines self.elements
+        clockalls = timer()
+        clock1s = timer()
         self.select_elements()
         self.order = len(self.elements) # order of the group
+        clock1e = timer()
+        if debug > 1:
+            print("element selection: %.2fs" % (clock1e - clock1s))
 
         # set up multiplication table
+        # defines self.faithful
+        clock1s = timer()
         self.tmult = np.zeros((self.order, self.order), dtype=int)
         self.make_mult_table()
+        clock1e = timer()
+        if debug > 1:
+            print("multiplication table: %.2fs" % (clock1e - clock1s))
 
         # set up list with inverse elements
+        clock1s = timer()
         self.linv = np.zeros((self.order,), dtype=int)
         self.make_inv_list()
+        clock1e = timer()
+        if debug > 1:
+            print("inverse elements: %.2fs" % (clock1e - clock1s))
 
         # determine conjugacy classes
+        # defines self.nclasses, self.cdim, self.crep,
+        # self.cdimmax, self.lclasses
+        clock1s = timer()
         self.tconjugacy = np.zeros_like(self.tmult, dtype=int)
         self.make_conjugacy_relations()
         self.assign_classes()
+        clock1e = timer()
+        if debug > 1:
+            print("conjugacy classes: %.2fs" % (clock1e - clock1s))
 
         # prepare storage for representations, number of irreps and
         # classes must be the same
         # use register_irrep for adding
+        clock1s = timer()
         self.irreps = []
         self.irrepsname = []
         self.irrepdim = np.zeros((self.nclasses,), dtype=int)
         self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
+        if irreps:
+            self.find_irreps()
+        clock1e = timer()
+        clockalle = timer()
+        if debug > 1:
+            print("irrep selection: %.2fs" % (clock1e - clock1s))
+            print("total time: %.2fs" % (clockalle - clockalls))
 
     def select_elements(self):
         self.elements = []
@@ -89,6 +120,9 @@ class TOh(object):
         # check if complete
         self.faithful = True
         checksum = np.ones((self.order,))*np.sum(range(self.order))
+        u, ind = np.unique(self.tmult, return_index=True)
+        if len(u) != self.order:
+            self.faithful = False
         tmp = np.sum(self.tmult, axis=0)
         if not utils._eq(tmp, checksum):
             self.faithful = False
@@ -122,16 +156,16 @@ class TOh(object):
             if self.tconjugacy[i,j] == 1:
                 if tmp[j] == -1:
                     tmp[j] = i
-        tmp = np.sort(tmp)
+        tmps = np.sort(tmp)
         self.nclasses = len(np.unique(tmp))
         # get dimension and representative of each class
         self.cdim = np.zeros((self.nclasses,), dtype=int)
         self.crep = np.zeros((self.nclasses,), dtype=int)
         icls, j = -1, -1
         for i in range(self.order):
-            if tmp[i] != j:
+            if tmps[i] != j:
                 icls += 1
-                j = tmp[i]
+                j = tmps[i]
                 self.cdim[icls] = 1
                 self.crep[icls] = j
             else:
@@ -146,8 +180,20 @@ class TOh(object):
                     k += 1
                     self.lclasses[i][k] = j
 
-    def register_irrep(self, irrep):
-        pass
+    def check_ortho(self, irrep):
+        if len(self.irreps) == 0:
+            return True
+        char = irrep.characters(self.crep)
+        n = len(self.irreps)
+        # check row orthogonality
+        check1 = np.zeros((n,), dtype=complex)
+        for i in range(n):
+            res = 0.
+            for k in range(self.nclasses):
+                res += self.tchar[i,k] * char[k].conj() * self.cdim[k]
+            check1[i] = res
+        t1 = utils._eq(check1)
+        return t1
 
     def check_orthogonalities(self):
         # check row orthogonality
@@ -160,7 +206,7 @@ class TOh(object):
                 check1[i,j] = res
         tmp = self.order * np.identity(self.nclasses)
         t1 = utils._eq(check1, tmp)
-        # check row orthogonality
+        # check column orthogonality
         check2 = np.zeros((self.nclasses, self.nclasses), dtype=complex)
         for i in range(self.nclasses):
             for j in range(self.nclasses):
@@ -216,36 +262,263 @@ class TOh(object):
             tmpstr = "".join([" %3d|" % i, tmpstr])
             print(tmpstr)
 
+    def print_char_table(self):
+        print("")
+        tmpstr = [" %6d " % x for x in range(self.nclasses)]
+        tmpstr = "|".join(tmpstr)
+        tmpstr = "".join(["    |", tmpstr])
+        print(tmpstr)
+        print("_".center(self.nclasses*8+3, "_"))
+        for i in range(self.nclasses):
+            tmpstr = [" %6.3f " % x for x in self.tchar[i].real]
+            tmpstr = "|".join(tmpstr)
+            tmpstr = "".join([" %3d|" % i, tmpstr])
+            print(tmpstr)
+
     def print_class_members(self):
         for i in range(self.nclasses):
             tmpstr = ["%d" % x for x in self.lclasses[i] if x != -1]
             tmpstr = ", ".join(tmpstr)
             print("class %2d: %s" % (i, tmpstr))
 
+    def find_irreps(self):
+        # find the possible combinations of irrep dimensions
+        self.find_possible_dims()
+        # get 1D irreps
+        self.find_1D()
+        alldone = self.check_possible_dims()
+        if alldone:
+            return
+        if self.debug > 1 and self.pos is not None:
+            print(len(self.pos))
+        self.find_2D()
+        alldone = self.check_possible_dims()
+        if alldone:
+            return
+        if self.debug > 1 and self.pos is not None:
+            print(len(self.pos))
+        self.find_3D()
+        alldone = self.check_possible_dims()
+        if alldone:
+            return
+        if self.debug > 1 and self.pos is not None:
+            print(len(self.pos))
+        self.find_4D()
+        alldone = self.check_possible_dims()
+        if alldone:
+            return
+        if self.debug > 1 and self.pos is not None:
+            print(len(self.pos))
+        msg = "did not find all irreps, found %d/%d" % (len(self.irreps), self.nclasses)
+        print(msg)
+        self.print_char_table()
+        #raise RuntimeError(msg)
+
+    def find_possible_dims(self):
+        def _op(data):
+            # check if the sum of squares is equal to the order
+            check1 = (np.sum(np.square(data)) == self.order)
+            return check1
+        nmax = int(np.floor(np.sqrt(self.order)))
+        # generator for all combinations of dimensions, sorted
+        gen = it.combinations_with_replacement(range(1,nmax+1), self.nclasses)
+        # filter all combinations which satisfy function
+        # _op defined above
+        tmp = np.asarray(list(it.ifilter(_op, gen)), dtype=int)
+        # generate array with frequency of dimension for every possible
+        # combination of dimensions
+        self.pos = np.zeros((len(tmp), nmax), dtype=int)
+        for n in range(nmax):
+            self.pos[:,n] = np.sum(tmp == n+1, axis=1)
+
+    def check_possible_dims(self):
+        if (self.pos == None) or (len(self.irrepsname) == 0):
+            return False
+        elif len(self.irreps) == self.nclasses:
+            return True
+        nmax = self.pos.shape[1]
+        fre = np.zeros((nmax,), dtype=int)
+        for n in range(nmax):
+            fre[n] = np.sum(self.irrepdim == n+1)
+        skip = False
+        tmp = []
+        for p in self.pos:
+            skip = False
+            for n in range(nmax):
+                if not (fre[n] <= p[n]):
+                    skip = True
+                    break
+            if not skip:
+                tmp.append(p)
+        tmp = np.asarray(tmp, dtype=int)
+        if tmp.size == nmax:
+            self.checkdims = tmp
+            self.pos = None
+        elif tmp.size == 0:
+            raise RuntimeError("no possible dimensions found")
+        else:
+            self.pos = tmp.copy()
+        return False
+
+    def append_irrep(self, irrep):
+        self.irreps.append(irrep)
+        self.irrepsname.append(irrep.name)
+        ind = len(self.irreps)-1
+        self.irrepdim[ind] = irrep.dim
+        irrep.irid = ind
+        self.tchar[ind] = irrep.characters(self.crep)
+
+    def find_1D(self):
+        ir = TOh1D(self.elements)
+        ir.name = "A1"
+        if ir.is_representation(self.tmult):
+            self.append_irrep(ir)
+        self.flip = [x for x in self.flip_reps(ir)]
+        self.suffixes = ["%d"%x for x in range(2,10)] # g/u for even odd
+        for f, s in zip(self.flip, self.suffixes):
+            ir = TOh1D(self.elements)
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join(("A", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+                self.append_irrep(ir)
+
+    def flip_reps(self, irrep):
+        n = self.nclasses
+        mx_backup = irrep.mx.copy()
+        # flip classes, start with two
+        for k in range(1, n):
+            #print("flip %d classes" % k)
+            for ind in it.combinations(range(1,n), k):
+                fvec = np.ones((n,))
+                for x in ind:
+                    fvec[x] *= -1
+                irrep.flip_classes(fvec, self.lclasses)
+                check1 = np.sum(irrep.mx)
+                check2 = irrep.is_representation(self.tmult)
+                irrep.mx = mx_backup.copy()
+                if utils._eq(check1) and check2:
+                    yield fvec.copy()
+
+    def find_2D(self):
+        ir = TOh2D(self.elements)
+        ir.name = "E1g"
+        if ir.is_representation(self.tmult) and self.check_ortho(ir):
+            self.append_irrep(ir)
+        else:
+            print("E1g not representation")
+        for f, s in zip(self.flip, self.suffixes):
+            ir = TOh2D(self.elements)
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join(("E", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+                self.append_irrep(ir)
+            else:
+                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+
+    def find_3D(self):
+        ir = TOh3D(self.elements)
+        ir.name = "T1g"
+        if ir.is_representation(self.tmult) and self.check_ortho(ir):
+            self.append_irrep(ir)
+        else:
+            print("T1g not representation")
+        for f, s in zip(self.flip, self.suffixes):
+            ir = TOh3D(self.elements)
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join(("T", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+                self.append_irrep(ir)
+            else:
+                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+
+    def find_4D(self):
+        ir = TOh4D(self.elements)
+        ir.name = "G1g"
+        if ir.is_representation(self.tmult) and self.check_ortho(ir):
+            self.append_irrep(ir)
+        else:
+            print("G1g not representation")
+        for f, s in zip(self.flip, self.suffixes):
+            ir = TOh4D(self.elements)
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join(("G", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+                self.append_irrep(ir)
+            else:
+                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+
 class TOhRep(object):
-    def __init__(self, dimension, order, nclasses):
+    def __init__(self, dimension):
         self.dim = dimension
         self.irid = -1
         self.name = " "
-        self.mx = np.zeros((order, self.dim, self.dim), dtype=complex)
-        self.char = np.zeros((nclasses,), dtype=complex)
+        self.mx = None
+        self.char = None
+        self.rep = None
 
     def characters(self, representatives):
-        for i, r in enumerate(representatives):
-            self.char[i] = np.trace(self.mx[r])
-        return self.char
+        if self.mx is None:
+            return np.nan
+        elif ((self.char is not None) and
+              (self.rep is not None) and
+              (utils._eq(self.rep, representatives))):
+            return self.char
+        else:
+            char = np.zeros((len(representatives),), dtype=complex)
+            for i, r in enumerate(representatives):
+                char[i] = np.trace(self.mx[r])
+            self.char = char
+            self.rep = representatives
+            return char
 
-    def is_representation(self, tmult):
+    def is_representation(self, tmult, verbose=False):
         n = self.mx.shape[0]
         for i in range(n):
             mxi = self.mx[i]
             for j in range(n):
                 mxj = self.mx[j]
                 mxk = self.mx[tmult[i,j]]
-                mxij = mxi*mxj
+                mxij = mxi.dot(mxj)
                 if not utils._eq(mxij, mxk):
+                    if verbose:
+                        print("elements %d * %d (%r * %r) not the same as %d (%r / %r)" % (i, j, mxi, mxj, tmult[i,j], mxij, mxk))
                     return False
         return True
+
+    def flip_classes(self, vec, classes):
+        """multiply elements by contents of vec based on the class
+        they are in."""
+        if self.char is not None:
+            self.char = None
+        for v, c in zip(vec, classes):
+            for el in c:
+                if el == -1:
+                    break
+                self.mx[el] *= v
+
+class TOh1D(TOhRep):
+    def __init__(self, elements):
+        TOhRep.__init__(self, 1)
+        self.name = "TOh1D"
+        self.mx = gg.genJ0(elements)
+
+class TOh2D(TOhRep):
+    def __init__(self, elements):
+        TOhRep.__init__(self, 2)
+        self.name = "TOh2D"
+        self.mx = gg.genJ1_2(elements)
+
+class TOh3D(TOhRep):
+    def __init__(self, elements):
+        TOhRep.__init__(self, 3)
+        self.name = "TOh3D"
+        self.mx = gg.genJ1(elements)
+
+class TOh4D(TOhRep):
+    def __init__(self, elements):
+        TOhRep.__init__(self, 4)
+        self.name = "TOh4D"
+        self.mx = gg.genJ3_2(elements)
 
 if __name__ == "__main__":
     print("for checks execute the test script")
