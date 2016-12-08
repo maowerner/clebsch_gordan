@@ -5,7 +5,16 @@ import numpy as np
 import group
 
 def main():
-    pass
+    p2max = 4
+    jmax = 3
+    np.set_printoptions(suppress=True)
+
+    # create groups for all p2 and instanciate the irreps
+    for p2 in range(p2max):
+        print(" working on P^2 = %d ".center(40, "=") % p2)
+        g = group.OhGroup(p2=p2, instances=True)
+        b = group.BasisIrrep(jmax, g)
+        b.display()
 
 if __name__ == "__main__":
     try:
