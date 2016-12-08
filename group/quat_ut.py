@@ -63,6 +63,10 @@ class TestQNew(unittest.TestCase):
         self.assertFalse(q1 == q2)
         self.assertTrue(q1 != q2)
 
+    def test_comp(self):
+        q1 = quat.QNew.create_from_vector(self.vec, 1)
+        self.assertTrue(q1.comp(self.vec))
+        self.assertFalse(q1.comp(self.vec+1.))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

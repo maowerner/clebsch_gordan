@@ -263,16 +263,26 @@ class TOh(object):
             print(tmpstr)
 
     def print_char_table(self):
+        def _tostring(x):
+            if np.isclose(x.imag, 0.):
+                return " %6.3f " % x.real
+            elif np.isclose(x.real, 0.):
+                return " %6.3fJ" % x.imag
+            else:
+                return " %6.3f+" % x.real
         print("")
         tmpstr = [" %6d " % x for x in range(self.nclasses)]
         tmpstr = "|".join(tmpstr)
         tmpstr = "".join(["    |", tmpstr])
         print(tmpstr)
-        print("_".center(self.nclasses*8+3, "_"))
+        print("_".center(self.nclasses*9+3, "_"))
         for i in range(self.nclasses):
-            tmpstr = [" %6.3f " % x for x in self.tchar[i].real]
+            tmpstr = [_tostring(x) for x in self.tchar[i]]
             tmpstr = "|".join(tmpstr)
-            tmpstr = "".join([" %3d|" % i, tmpstr])
+            try:
+                tmpstr = "".join([" %3s|" % self.irreps[i].name, tmpstr])
+            except IndexError:
+                tmpstr = "".join([" %3d|" % i, tmpstr])
             print(tmpstr)
 
     def print_class_members(self):
@@ -287,32 +297,27 @@ class TOh(object):
         # get 1D irreps
         self.find_1D()
         alldone = self.check_possible_dims()
-        if alldone:
-            return
-        if self.debug > 1 and self.pos is not None:
-            print(len(self.pos))
-        self.find_2D()
-        alldone = self.check_possible_dims()
-        if alldone:
-            return
-        if self.debug > 1 and self.pos is not None:
-            print(len(self.pos))
-        self.find_3D()
-        alldone = self.check_possible_dims()
-        if alldone:
-            return
-        if self.debug > 1 and self.pos is not None:
-            print(len(self.pos))
-        self.find_4D()
-        alldone = self.check_possible_dims()
-        if alldone:
-            return
-        if self.debug > 1 and self.pos is not None:
-            print(len(self.pos))
-        msg = "did not find all irreps, found %d/%d" % (len(self.irreps), self.nclasses)
-        print(msg)
+        if not alldone:
+            for d in range(2, 5):
+                self.get_irreps(d)
+                alldone = self.check_possible_dims()
+                if alldone:
+                    break
+        # find special cases, sorted by time needed from fast to slow
+        if not alldone:
+            for d in range(2, 3):
+                self.get_irreps_special(d)
+                alldone = self.check_possible_dims()
+                if alldone:
+                    break
+        if not alldone:
+            self.find_1D_special()
+            alldone = self.check_possible_dims()
+        if not alldone:
+            msg = "did not find all irreps, found %d/%d" % (len(self.irreps), self.nclasses)
+            print(msg)
+            #raise RuntimeError(msg)
         self.print_char_table()
-        #raise RuntimeError(msg)
 
     def find_possible_dims(self):
         def _op(data):
@@ -332,10 +337,12 @@ class TOh(object):
             self.pos[:,n] = np.sum(tmp == n+1, axis=1)
 
     def check_possible_dims(self):
-        if (self.pos == None) or (len(self.irrepsname) == 0):
+        if len(self.irrepsname) == 0:
             return False
         elif len(self.irreps) == self.nclasses:
             return True
+        elif self.pos is None:
+            return False
         nmax = self.pos.shape[1]
         fre = np.zeros((nmax,), dtype=int)
         for n in range(nmax):
@@ -382,10 +389,22 @@ class TOh(object):
             if ir.is_representation(self.tmult) and self.check_ortho(ir):
                 self.append_irrep(ir)
 
+    def find_1D_special(self):
+        ir = TOh1D(self.elements)
+        self.flip_i = [x for x in self.flip_reps_imaginary(ir)]
+        self.suffixes = ["%d"%x for x in range(1,10)] # g/u for even odd
+        print("possible vectors: %d" % len(self.flip_i))
+        for f, s in zip(self.flip_i, self.suffixes):
+            ir = TOh1D(self.elements)
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join(("K", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+                self.append_irrep(ir)
+
     def flip_reps(self, irrep):
         n = self.nclasses
         mx_backup = irrep.mx.copy()
-        # flip classes, start with two
+        # flip classes
         for k in range(1, n):
             #print("flip %d classes" % k)
             for ind in it.combinations(range(1,n), k):
@@ -399,53 +418,140 @@ class TOh(object):
                 if utils._eq(check1) and check2:
                     yield fvec.copy()
 
-    def find_2D(self):
-        ir = TOh2D(self.elements)
-        ir.name = "E1g"
-        if ir.is_representation(self.tmult) and self.check_ortho(ir):
-            self.append_irrep(ir)
-        else:
-            print("E1g not representation")
-        for f, s in zip(self.flip, self.suffixes):
-            ir = TOh2D(self.elements)
-            ir.flip_classes(f, self.lclasses)
-            ir.name = "".join(("E", s))
-            if ir.is_representation(self.tmult) and self.check_ortho(ir):
-                self.append_irrep(ir)
-            else:
-                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+    def flip_reps_imaginary(self, irrep):
+        def check_index(i1, i2):
+            for x in i2:
+                try:
+                    i1.index(x)
+                    return True
+                except ValueError:
+                    continue
+            return False
+        def f_vec(n, ind1, ind2, indm):
+            fvec = np.ones((n,), dtype=complex)
+            for i in ind1:
+                fvec[i] *= 1.j
+            for i in ind2:
+                fvec[i] *= -1.j
+            for i in indm:
+                fvec[i] *= -1.
+            return fvec
 
-    def find_3D(self):
-        ir = TOh3D(self.elements)
-        ir.name = "T1g"
-        if ir.is_representation(self.tmult) and self.check_ortho(ir):
-            self.append_irrep(ir)
-        else:
-            print("T1g not representation")
-        for f, s in zip(self.flip, self.suffixes):
-            ir = TOh3D(self.elements)
-            ir.flip_classes(f, self.lclasses)
-            ir.name = "".join(("T", s))
-            if ir.is_representation(self.tmult) and self.check_ortho(ir):
-                self.append_irrep(ir)
-            else:
-                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+        n = self.nclasses
+        mx_backup = irrep.mx.copy()
+        count = 0
+        # multiply classes with -1, i and -i,
+        # always the same number of classes with +i and -i
+        # total number of classes flipped
+        for kt in range(3, n):
+            print("flip %d classes" % (kt))
+            # half the number of classes with imaginary flip
+            for ki in range(1, kt//2):
+                # get indices for classes with +/- i
+                for ind1 in it.combinations(range(1, n), ki):
+                    for ind2 in it.combinations(range(1,n), ki):
+                        # check if some class is in both index arrays
+                        # and skip if it is
+                        if check_index(ind1, ind2):
+                            #print("skipping %r and %r" % (ind1, ind2))
+                            continue
+                        # get indices for classes with -1
+                        for indm in it.combinations(range(1,n), kt-2*ki):
+                            # check if some class is already taken
+                            # and skip if it is
+                            if check_index(ind1, indm):
+                                #print("skipping %r and %r" % (ind1, ind2))
+                                continue
+                            # check if some class is already taken
+                            # and skip if it is
+                            if check_index(ind2, indm):
+                                #print("skipping %r and %r" % (ind1, ind2))
+                                continue
+                            #print("using %r and %r" % (ind1, ind2))
+                            fvec = f_vec(n, ind1, ind2, indm)
+                            irrep.flip_classes(fvec, self.lclasses)
+                            #print(irrep.characters(self.crep))
+                            check1 = np.sum(irrep.mx)
+                            check2 = irrep.is_representation(self.tmult)
+                            irrep.mx = mx_backup.copy()
+                            #print("%r, %r, %r: %r, %r" % (ind1, ind2, indm,
+                            #        check1, check2))
+                            if utils._eq(check1) and check2:
+                                print("yield")
+                                count += 1
+                                yield fvec.copy()
+                                if count == 4:
+                                    return
 
-    def find_4D(self):
-        ir = TOh4D(self.elements)
-        ir.name = "G1g"
-        if ir.is_representation(self.tmult) and self.check_ortho(ir):
-            self.append_irrep(ir)
+    def get_irreps(self, dim, naming=None):
+        if dim == 2:
+            rep = lambda x=None: TOh2D(self.elements)
+            _name = "E" if (naming is None) else naming
+        elif dim == 3:
+            rep = lambda x=None: TOh3D(self.elements)
+            _name = "T" if (naming is None) else naming
+        elif dim == 4:
+            rep = lambda x=None: TOh4D(self.elements)
+            _name = "G" if (naming is None) else naming
+        elif dim == 1:
+            raise RuntimeError("there is a special routine for 1D irreps")
         else:
-            print("G1g not representation")
+            raise RuntimeError("%dD irreps not implemented" % dim)
+
+        if self.debug > 2:
+            print("finding %dD irreps" % dim)
+        ir = rep()
+        ir.name = "".join([_name, "1"])
+        check1 = ir.is_representation(self.tmult)
+        check2 = self.check_ortho(ir)
+        if check1 and check2:
+            self.append_irrep(ir)
+        if self.debug > 2:
+            print("Irrep %s is representation (%r) and orthogonal (%r)" % (
+                    ir.name, check1, check2))
         for f, s in zip(self.flip, self.suffixes):
-            ir = TOh4D(self.elements)
+            ir = rep()
             ir.flip_classes(f, self.lclasses)
-            ir.name = "".join(("G", s))
-            if ir.is_representation(self.tmult) and self.check_ortho(ir):
+            ir.name = "".join([_name, s])
+            check1 = ir.is_representation(self.tmult)
+            check2 = self.check_ortho(ir)
+            if check1 and check2:
                 self.append_irrep(ir)
-            else:
-                print("%s is ortho? %r" % (ir.name, self.check_ortho(ir)))
+            if self.debug > 2:
+                print("Irrep %s is representation (%r) and orthogonal (%r)" % (
+                        ir.name, check1, check2))
+
+    def get_irreps_special(self, dim, naming=None):
+        if dim == 2:
+            rep = lambda x=None: TOh2Dp(self.elements, self.pref)
+            _name = "Ep" if (naming is None) else naming
+        elif dim == 1:
+            raise RuntimeError("there is a special routine for 1D irreps")
+        else:
+            raise RuntimeError("%dD irreps not implemented" % dim)
+
+        if self.debug > 2:
+            print("finding special %dD irreps" % dim)
+        ir = rep()
+        ir.name = "".join([_name, "1"])
+        check1 = ir.is_representation(self.tmult)
+        check2 = self.check_ortho(ir)
+        if check1 and check2:
+            self.append_irrep(ir)
+        if self.debug > 2:
+            print("Irrep %s is representation (%r) and orthogonal (%r)" % (
+                    ir.name, check1, check2))
+        for f, s in zip(self.flip, self.suffixes):
+            ir = rep()
+            ir.flip_classes(f, self.lclasses)
+            ir.name = "".join([_name, s])
+            check1 = ir.is_representation(self.tmult)
+            check2 = self.check_ortho(ir)
+            if check1 and check2:
+                self.append_irrep(ir)
+            if self.debug > 2:
+                print("Irrep %s is representation (%r) and orthogonal (%r)" % (
+                        ir.name, check1, check2))
 
 class TOhRep(object):
     def __init__(self, dimension):
@@ -519,6 +625,18 @@ class TOh4D(TOhRep):
         TOhRep.__init__(self, 4)
         self.name = "TOh4D"
         self.mx = gg.genJ3_2(elements)
+
+class TOh2Dp(TOhRep):
+    def __init__(self, elements, pref=None):
+        TOhRep.__init__(self, 2)
+        self.name = "TOh2Dp"
+        p2 = 0 if (pref is None) else np.dot(pref, pref)
+        if p2 in [0, 3]:
+            self.mx = gg.genEpCMF(elements)
+        elif p2 == 1:
+            self.mx = gg.genEpMF1(elements)
+        else:
+            raise RuntimeError("reference momentum not implemented")
 
 if __name__ == "__main__":
     print("for checks execute the test script")

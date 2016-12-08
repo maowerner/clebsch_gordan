@@ -8,7 +8,7 @@ import group_class_quat as gc
 import group_class as gcold
 import utils
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOh(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -57,6 +57,7 @@ class TestTOh(unittest.TestCase):
         res_theo = np.asarray([2.,0.,1.,sq2,0.,-2.,-1.,-sq2])
         self.assertEqual(res, res_theo)
 
+@unittest.skip("bla")
 class TestTOh_full(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -72,6 +73,7 @@ class TestTOh_full(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
+@unittest.skip("bla")
 class TestTOh_full_MF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -88,6 +90,7 @@ class TestTOh_full_MF1(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
+@unittest.skip("bla")
 class TestTOh_full_MF2(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -120,21 +123,21 @@ class TestTOh_full_MF3(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOhMF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         tmp = np.asarray([0., 0., 1.])
-        wi = False
+        self.wi = False
         debug = 1
-        self.group = gc.TOh(pref=tmp, withinversion=wi)
+        self.group = gc.TOh(pref=tmp, withinversion=self.wi)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
-    def test_working(self):
-        print(self.group.lclasses)
-        self.assertTrue(True)
+    def test_nclasses(self):
+        res_theo = 14 if self.wi else 7
+        self.assertEqual(len(self.group.lclasses), res_theo)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

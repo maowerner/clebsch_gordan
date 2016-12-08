@@ -58,7 +58,6 @@ class QNew(object):
         return False
 
     def __ne__(self, other):
-        print("called __ne__")
         if not isinstance(other, QNew):
             return True
         if not np.allclose(self.q, other.q) or self.i != other.i:
@@ -90,6 +89,12 @@ class QNew(object):
 
     def norm(self):
         return np.dot(self.q, self.q)
+
+    def __str__(self):
+        return "[%r, %r, %r, %r] with inversion %d" % (self.q[0], self.q[1], self.q[2], self.q[3], self.i)
+
+    def comp(self, vec):
+        return np.allclose(self.q, vec)
 
     # code inspired by the quaternion package of moble
     # https://github.com/moble/quaternion
