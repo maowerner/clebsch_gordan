@@ -218,7 +218,7 @@ class TOh(object):
         t2 = utils._eq(check2, tmp)
         return t1, t2
 
-    def characters_of_SU2(self, j, inv=False):
+    def characters_of_SU2(self, j):
         """Character of SU(2) with multiplicity [j] = 2*j+1 for
         all conjugacy classes.
 
@@ -245,7 +245,7 @@ class TOh(object):
             for k in range(1, n+1):
                 _sum += np.cos(k * omegas)
         _sum *= 2.
-        if inv:
+        if self.withinversion:
             _sum *= _inv
         return _sum
 
@@ -313,11 +313,13 @@ class TOh(object):
         if not alldone:
             self.find_1D_special()
             alldone = self.check_possible_dims()
+        #self.print_char_table()
         if not alldone:
             msg = "did not find all irreps, found %d/%d" % (len(self.irreps), self.nclasses)
             print(msg)
             #raise RuntimeError(msg)
-        self.print_char_table()
+        else:
+            self.check_orthogonalities()
 
     def find_possible_dims(self):
         def _op(data):
@@ -393,7 +395,7 @@ class TOh(object):
         ir = TOh1D(self.elements)
         self.flip_i = [x for x in self.flip_reps_imaginary(ir)]
         self.suffixes = ["%d"%x for x in range(1,10)] # g/u for even odd
-        print("possible vectors: %d" % len(self.flip_i))
+        #print("possible vectors: %d" % len(self.flip_i))
         for f, s in zip(self.flip_i, self.suffixes):
             ir = TOh1D(self.elements)
             ir.flip_classes(f, self.lclasses)
@@ -444,7 +446,7 @@ class TOh(object):
         # always the same number of classes with +i and -i
         # total number of classes flipped
         for kt in range(3, n):
-            print("flip %d classes" % (kt))
+            #print("flip %d classes" % (kt))
             # half the number of classes with imaginary flip
             for ki in range(1, kt//2):
                 # get indices for classes with +/- i
@@ -477,9 +479,10 @@ class TOh(object):
                             #print("%r, %r, %r: %r, %r" % (ind1, ind2, indm,
                             #        check1, check2))
                             if utils._eq(check1) and check2:
-                                print("yield")
+                                #print("yield")
                                 count += 1
                                 yield fvec.copy()
+                                # hard-coded due to long runtime
                                 if count == 4:
                                     return
 

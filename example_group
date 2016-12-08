@@ -6,46 +6,54 @@ import group
 
 def main():
     np.set_printoptions(suppress=True)
+    jmax = 5
 
     print(" CMF ".center(50, "*"))
-    g = group.OhGroup(instances=True)
-    for gi in g.instances:
-        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
-        #gi.Characters()
-        gi.MkClassTable()
-    g.PrintCharTable()
-    g.Check1()
-    g.Check2()
+    g = group.TOh(withinversion=True, irreps=True)
+    #for gi in g.irreps:
+    #    print(" %s ".center(20, "*") % (g.name))
+    #    gi.characters()
+    g.print_char_table()
+    print("SU(2) characters")
+    for j in range(1, jmax):
+        print("j=%f" % (j/2.))
+        print(g.characters_of_SU2(j))
 
     print(" MF1 ".center(50, "*"))
-    g = group.OhGroup(p2=1, instances=True)
-    for gi in g.instances:
-        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
-        #gi.Characters()
-        gi.MkClassTable()
-    g.PrintCharTable()
-    g.Check1()
-    g.Check2()
+    pref = np.asarray([0., 0., 1.])
+    g = group.TOh(pref=pref, withinversion=True, irreps=True)
+    #for gi in g.irreps:
+    #    print(" %s ".center(20, "*") % (g.name))
+    #    gi.characters()
+    g.print_char_table()
+    print("SU(2) characters")
+    for j in range(1, jmax):
+        print("j=%f" % (j/2.))
+        print(g.characters_of_SU2(j))
 
     print(" MF2 ".center(50, "*"))
-    g = group.OhGroup(p2=2, instances=True)
-    for gi in g.instances:
-        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
-        #gi.Characters()
-        gi.MkClassTable()
-    g.PrintCharTable()
-    g.Check1()
-    g.Check2()
+    pref = np.asarray([1., 1., 0.])
+    g = group.TOh(pref=pref, withinversion=True, irreps=True)
+    #for gi in g.irreps:
+    #    print(" %s ".center(20, "*") % (g.name))
+    #    gi.characters()
+    g.print_char_table()
+    print("SU(2) characters")
+    for j in range(1, jmax):
+        print("j=%f" % (j/2.))
+        print(g.characters_of_SU2(j))
 
     print(" MF3 ".center(50, "*"))
-    g = group.OhGroup(p2=3, instances=True)
-    for gi in g.instances:
-        print(" %s ".center(20, "*") % (g.lirreps[gi.irid]))
-        #gi.Characters()
-        gi.MkClassTable()
-    g.PrintCharTable()
-    g.Check1()
-    g.Check2()
+    pref = np.asarray([1., 1., 1.])
+    g = group.TOh(pref=pref, withinversion=True, irreps=True)
+    #for gi in g.irreps:
+    #    print(" %s ".center(20, "*") % (g.name))
+    #    gi.characters()
+    g.print_char_table()
+    print("SU(2) characters")
+    for j in range(1, jmax):
+        print("j=%f" % (j/2.))
+        print(g.characters_of_SU2(j))
 
 if __name__ == "__main__":
     try:
