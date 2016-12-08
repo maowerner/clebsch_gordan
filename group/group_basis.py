@@ -2,6 +2,8 @@
 
 import numpy as np
 import sympy
+import pandas as pd
+from pandas import Series, DataFrame
 
 import utils
 from rotations import _all_rotations
@@ -132,6 +134,42 @@ class BasisIrrep(object):
                         text = "".join(["%s".rjust(10) % (_s(x)) for x in b])
                         text = "".join((prefix, text))
                         print(text)
+
+    def to_pandas(self, j):
+        def _s(x):
+            tmp = sympy.nsimplify(x)
+            tmp1 = sympy.simplify(tmp)
+            # TODO: does no align properly using rjust
+            # maybe due to implicit string conversion
+            return str(tmp1)
+
+        # get indices for spin
+        idlml = self.get_lm_index(j, -j)
+        idlmh = self.get_lm_index(j, j)
+        for ir in self.irreps:
+            # get indices for irrep
+            idirl = self.get_ir_index(ir, 0)
+            idirh = self.get_ir_index_rev(ir)
+            # loop over multiplicities
+            for m, mb in enumerate(self.basis[:,idirl:idirh+1,idlml:idlmh+1]):
+                # check if all entries are zero and continue if so
+                if not np.any(np.abs(mb) > self.prec):
+                    continue
+
+                dim_ir = len(mb)
+                #TODO: comment
+                #TODO: how does this translate into gamma structures? Choice
+                # continuum basis
+                momenta = {0 : (0,0,0), 1 : (0,0,1), 2 : (1,1,0), 3 : (1,1,1)}
+                df = DataFrame({'p' : [momenta[self.p2]] * (2*j+1)*dim_ir, \
+                                ('|%1d, M>' % j) : range(-j,j+1) * dim_ir, \
+                                'cg-coefficient' : \
+                                  [_s(cg) for cg_row in mb for cg in cg_row]}, \
+                               index = pd.Index(sorted(range(dim_ir)*(2*j+1)), \
+                                                                    name='\mu'))
+                print ir
+                print df
+                print ' '
 
     def coefficient(self, irrep, row, l, mult=0):
         indir = self.get_ir_index(irrep, row)
