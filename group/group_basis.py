@@ -142,7 +142,7 @@ class BasisIrrep(object):
             # TODO: does no align properly using rjust
             # maybe due to implicit string conversion
             return str(tmp1)
-
+        
         # get indices for spin
         idlml = self.get_lm_index(j, -j)
         idlmh = self.get_lm_index(j, j)
@@ -157,18 +157,45 @@ class BasisIrrep(object):
                     continue
 
                 dim_ir = len(mb)
-                #TODO: comment
-                #TODO: how does this translate into gamma structures? Choice
-                # continuum basis
+                #TODO: momenta are hardcoded for one direction of the total
+                # system momentum. It is repeated for every entry
                 momenta = {0 : (0,0,0), 1 : (0,0,1), 2 : (1,1,0), 3 : (1,1,1)}
-                df = DataFrame({'p' : [momenta[self.p2]] * (2*j+1)*dim_ir, \
-                                ('|%1d, M>' % j) : range(-j,j+1) * dim_ir, \
-                                'cg-coefficient' : \
-                                  [_s(cg) for cg_row in mb for cg in cg_row]}, \
-                               index = pd.Index(sorted(range(dim_ir)*(2*j+1)), \
+                df_continuum = \
+                    DataFrame({'p' : [momenta[self.p2]] * (2*j+1)*dim_ir, \
+                               ('|%1d, M>' % j) : range(-j,j+1) * dim_ir, \
+                               'cg-coefficient' : \
+                                  [cg for cg_row in mb for cg in cg_row]}, \
+                              index = pd.Index(sorted(range(dim_ir)*(2*j+1)), \
                                                                     name='\mu'))
+                    
                 print ir
-                print df
+
+                # the lattice basis vectors are given as linear combinations
+                # of the continuum basis vectors. A common choice for J=1
+                # and SU(2) would be
+                # |1,+-1> = 1/sqrt(2)*(\gamma_1 +- i*\gamma_2), |1,0> = \gamma_3
+                # This can be solved for gamma and yields
+                # \gamma_1 = |1,+1> + |1,-1>
+                # \gamma_2 = (-i)*(|1,+1> - |1,-1>)
+                # \gamma_3 = |1,0>
+                # cg contains the according combinations and in df_gamma they 
+                # are again associated with the row, gamma structure and 
+                # momentum
+                cg = pd.concat( \
+                     [df_continuum[df_continuum['|%1d, M>' % j]==1]['cg-coefficient'] \
+                       + df_continuum[df_continuum['|%1d, M>' % j]==-1]['cg-coefficient'], \
+                      (-1j)*(df_continuum[df_continuum['|%1d, M>' % j]==1]['cg-coefficient'] \
+                       - df_continuum[df_continuum['|%1d, M>' % j]==-1]['cg-coefficient']), \
+                      df_continuum[df_continuum['|%1d, M>' % j]==0]['cg-coefficient']])
+                cg = cg.apply(_s).reset_index()
+                print cg
+                print sorted(range(1,4)*dim_ir)
+                df_gamma = DataFrame(
+                    [cg['\mu'], cg['cg-coefficient'], \
+                     Series(sorted(range(1,4)*dim_ir), name='\gamma'), \
+                     Series([momenta[self.p2]] * dim_ir*3, name='p')] \
+                                                            ).T.set_index('\mu')
+                print df_gamma
                 print ' '
 
     def coefficient(self, irrep, row, l, mult=0):
