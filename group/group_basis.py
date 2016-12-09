@@ -1,7 +1,6 @@
 """Class for the basis of a group."""
 
 import numpy as np
-import sympy
 
 import utils
 from rotations import _all_rotations
@@ -98,10 +97,13 @@ class BasisIrrep(object):
         else:
             multi=False
         def _s(x):
-            tmp = sympy.nsimplify(x)
-            tmp1 = sympy.simplify(tmp)
-            # TODO: does no align properly using rjust
-            # maybe due to implicit string conversion
+            try:
+                tmp = sympy.nsimplify(x)
+                tmp1 = sympy.simplify(tmp)
+                # TODO: does no align properly using rjust
+                # maybe due to implicit string conversion
+            except ImportError:
+                tmp1 = x
             return str(tmp1)
         for j in range(self.jmax):
             print("")

@@ -1,7 +1,6 @@
 """Class for groups and their representatives."""
 
 import numpy as np
-import sympy
 import scipy.misc
 import itertools as it
 
@@ -321,6 +320,11 @@ class OhGroup(object):
         print(self.tmult)
 
     def PrintCharTable(self):
+        try:
+            import sympy
+            s = true
+        except ImportError:
+            s = False
         print(" Character Table ".center(40, "*"))
         print("_".center(40, "_"))
         tmpstring="   "
@@ -331,7 +335,10 @@ class OhGroup(object):
             tmpstring = self.lirreps[i].rjust(3," ")
             for j in range(self.nclasses):
                 #tmp = "%r" % self.tcharacters[i,j]
-                tmp = "%r" % sympy.nsimplify(self.tchar[i,j])
+                if s:
+                    tmp = "%r" % sympy.nsimplify(self.tchar[i,j])
+                else:
+                    tmp = "%r" % self.tchar[i,j]
                 tmpstring = "".join((tmpstring, tmp.rjust(9," ")))
             print(tmpstring)
 
