@@ -9,11 +9,13 @@ import quat
 import group_generators_quat as gg
 
 class TOh(object):
-    def __init__(self, pref=None, withinversion=False, debug=0, irreps=False):
+    def __init__(self, pref=None, withinversion=False, withconjugation=True,
+            debug=0, irreps=False):
         self.name = "TO"
         self.npar = 24 # the parameters of the rotations
         self.pref = pref
         self.withinversion = withinversion
+        self.withconjugation = withconjugation
         self.debug = debug
         
         # set the elements
@@ -229,25 +231,40 @@ class TOh(object):
 
         Returns
         -------
-        char : float
-            The character of SU(2).
+        char : ndarray
+            The characters of SU(2).
         """
         omegas = np.asarray([2.*np.arccos(self.elements[x].q[0]) for x in self.crep])
-        _inv = np.asarray([self.elements[x].i for x in self.crep])
-        _sum = np.zeros_like(omegas)
+        _inv = np.asarray([float(self.elements[x].i) for x in self.crep])
+        _char = np.zeros_like(omegas)
         if j%2 == 0: # half-integer spin
             n = j//2
             for k in range(1, n+1):
-                _sum += np.cos(0.5 * (2*k-1) * omegas)
+                _char += np.cos(0.5 * (2*k-1) * omegas)
         else:
             n = (j-1)//2
-            _sum += 0.5
+            _char += 0.5
             for k in range(1, n+1):
-                _sum += np.cos(k * omegas)
-        _sum *= 2.
+                _char += np.cos(k * omegas)
+        _char *= 2.
         if self.withinversion:
-            _sum *= _inv
-        return _sum
+            _char *= _inv
+        return _char
+
+    def multiplicity_of_SU2(self, j):
+        """Multiplicites of irreps for SU(2) with multiplicity [j] = 2*j+1.
+
+        Parameter
+        ---------
+        j : int
+            The multiplicity of the angular momentum.
+
+        Returns
+        -------
+        multi : ndarray
+            The multiplicities.
+        """
+        pass
 
     def print_mult_table(self):
         print("")
@@ -319,7 +336,10 @@ class TOh(object):
             print(msg)
             #raise RuntimeError(msg)
         else:
-            self.check_orthogonalities()
+            check1, check2 = self.check_orthogonalities()
+            if not check1 or not check2:
+                print("row orthogonality: %r\ncolumn orthogonality: %r" % (
+                        check1, check2))
 
     def find_possible_dims(self):
         def _op(data):

@@ -111,7 +111,7 @@ def gen4D(elements, inv=False):
 # special cases
 def compare_quat(elem):
     for i, q in enumerate(quat.qPar):
-        if elem.comp(q) or (-elem).comp(q):
+        if elem.comp(q) or elem.comp(np.negative(q)):
             return i
     raise RuntimeError("element not identified: %r" % (elem.str()))
 
