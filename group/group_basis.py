@@ -98,6 +98,7 @@ class BasisIrrep(object):
             multi=False
         def _s(x):
             try:
+                import sympy
                 tmp = sympy.nsimplify(x)
                 tmp1 = sympy.simplify(tmp)
                 # TODO: does no align properly using rjust
