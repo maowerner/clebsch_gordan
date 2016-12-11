@@ -19,7 +19,8 @@ class TOh(object):
         self.debug = debug
         
         # set the elements
-        # defines self.elements
+        # defines self.elements, self.lelements
+        # see comment in select_elements
         clockalls = timer()
         clock1s = timer()
         self.select_elements()
@@ -32,6 +33,7 @@ class TOh(object):
         # defines self.faithful
         clock1s = timer()
         self.tmult = np.zeros((self.order, self.order), dtype=int)
+        self.tmult_global = np.zeros((self.order, self.order), dtype=int)
         self.make_mult_table()
         clock1e = timer()
         if debug > 1:
@@ -40,6 +42,7 @@ class TOh(object):
         # set up list with inverse elements
         clock1s = timer()
         self.linv = np.zeros((self.order,), dtype=int)
+        self.linv_global = np.zeros((self.order,), dtype=int)
         self.make_inv_list()
         clock1e = timer()
         if debug > 1:
@@ -73,28 +76,36 @@ class TOh(object):
             print("total time: %.2fs" % (clockalle - clockalls))
 
     def select_elements(self):
+        # self.elements contains the quaternions
+        # self.lelements contains the "global" (unique) index of the element,
+        # making the elements comparable between different groups
         self.elements = []
+        self.lelements = []
         # all possible elements for the double cover octahedral group
-        for el in quat.qPar:
+        for i, el in enumerate(quat.qPar):
             self.elements.append(quat.QNew.create_from_vector(el, 1))
+            self.lelements.append(i);
         if self.withinversion:
-            for el in quat.qPar:
+            for i, el in enumerate(quat.qPar):
                 self.elements.append(quat.QNew.create_from_vector(el, -1))
-        for el in quat.qPar:
+                self.lelements.append(i+24);
+        for i, el in enumerate(quat.qPar):
             self.elements.append(quat.QNew.create_from_vector(-el, 1))
+            self.lelements.append(i+48);
         if self.withinversion:
-            for el in quat.qPar:
+            for i, el in enumerate(quat.qPar):
                 self.elements.append(quat.QNew.create_from_vector(-el, -1))
+                self.lelements.append(i+72);
         # select elements when pref is given
         if self.pref is not None:
             selected = []
             elem = []
-            for k, el in enumerate(self.elements):
+            for el, num in zip(self.elements, self.lelements):
                 tmp = el.rotation_matrix().dot(self.pref)
                 c1 = utils._eq(tmp + self.pref)
                 c2 = utils._eq(tmp - self.pref)
                 if c1 or c2:
-                    selected.append(k)
+                    selected.append(num)
                     elem.append(el)
             if self.debug > 0:
                 print("The group with P_ref = %r has %d elements:" % (
@@ -103,6 +114,7 @@ class TOh(object):
                 tmpstr = ", ".join(tmpstr)
                 print("[%s]" % tmpstr)
             self.elements = elem
+            self.lelements = selected
 
     def make_mult_table(self):
         for i in range(self.order):
@@ -114,6 +126,7 @@ class TOh(object):
                         res = k
                         break
                 self.tmult[i,j] = res
+                self.tmult_global[i,j] = self.lelements[res]
                 if res < 0:
                     print("no element found corresponding to %d*%d" % (i,j))
         self.is_faithful()
@@ -121,7 +134,7 @@ class TOh(object):
     def is_faithful(self):
         # check if complete
         self.faithful = True
-        checksum = np.ones((self.order,))*np.sum(range(self.order))
+        checksum = np.ones((self.order,))*np.sum(self.lelements)
         u, ind = np.unique(self.tmult, return_index=True)
         if len(u) != self.order:
             self.faithful = False
@@ -138,6 +151,7 @@ class TOh(object):
                 tmp = self.elements[i] * self.elements[k]
                 if tmp == self.elements[0]:
                     self.linv[i] = k
+                    self.linv_global[i] = self.lelements[k]
                     break
 
     def make_conjugacy_relations(self):
