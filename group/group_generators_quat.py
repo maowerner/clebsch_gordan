@@ -80,12 +80,8 @@ def gen2D(elements, inv=False):
 
 def gen3D(elements, inv=False):
     res = np.zeros((len(elements), 3, 3), dtype=complex)
-    if inv:
-        for i, el in enumerate(elements):
-            res[i] = el.rotation_matrix() * el.i
-    else:
-        for i, el in enumerate(elements):
-            res[i] = el.rotation_matrix()
+    for i, el in enumerate(elements):
+        res[i] = el.rotation_matrix(inv)
     return res
 
 def gen4D(elements, inv=False):
@@ -180,14 +176,14 @@ def genEpMF1(elements, inv=False):
                      [-J, O]], dtype=complex)
     # hard-coded because I don't know which elements
     # of qPar contribute
-    m1list = [x+y*8 for x in [0] for y in range(4)]
-    m2list = [x+y*8 for x in [3] for y in range(4)]
-    m3list = [x+y*8 for x in [1] for y in range(4)]
-    m4list = [x+y*8 for x in [2] for y in range(4)]
-    m5list = [x+y*8 for x in [4] for y in range(4)]
-    m6list = [x+y*8 for x in [5] for y in range(4)]
-    m7list = [x+y*8 for x in [7] for y in range(4)]
-    m8list = [x+y*8 for x in [6] for y in range(4)]
+    m1list = [x+y*8 for x in [0] for y in range(2)]
+    m2list = [x+y*8 for x in [1] for y in range(2)]
+    m3list = [x+y*8 for x in [4] for y in range(2)]
+    m4list = [x+y*8 for x in [5] for y in range(2)]
+    m5list = [x+y*8 for x in [2] for y in range(2)]
+    m6list = [x+y*8 for x in [3] for y in range(2)]
+    m7list = [x+y*8 for x in [7] for y in range(2)]
+    m8list = [x+y*8 for x in [6] for y in range(2)]
     for i, elem in enumerate(elements):
         if i in m1list:
             res[i] = m1

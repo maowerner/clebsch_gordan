@@ -7,15 +7,16 @@ from timeit import default_timer as timer
 import utils
 import quat
 import group_generators_quat as gg
+from rotations import mapping
 
 class TOh(object):
-    def __init__(self, pref=None, withinversion=False, withconjugation=True,
-            debug=0, irreps=False):
+    def __init__(self, pref=None, withinversion=True, debug=0, irreps=False):
+        if not withinversion:
+            raise RuntimeError("only double cover octahedral group works!")
         self.name = "TO"
         self.npar = 24 # the parameters of the rotations
         self.pref = pref
         self.withinversion = withinversion
-        self.withconjugation = withconjugation
         self.debug = debug
         
         # set the elements
@@ -101,10 +102,9 @@ class TOh(object):
             selected = []
             elem = []
             for el, num in zip(self.elements, self.lelements):
-                tmp = el.rotation_matrix().dot(self.pref)
-                c1 = utils._eq(tmp + self.pref)
-                c2 = utils._eq(tmp - self.pref)
-                if c1 or c2:
+                tmp = el.rotation_matrix(self.withinversion).dot(self.pref)
+                c1 = utils._eq(tmp - self.pref)
+                if c1:
                     selected.append(num)
                     elem.append(el)
             if self.debug > 0:
@@ -125,10 +125,10 @@ class TOh(object):
                     if tmp == self.elements[k]:
                         res = k
                         break
-                self.tmult[i,j] = res
-                self.tmult_global[i,j] = self.lelements[res]
                 if res < 0:
                     print("no element found corresponding to %d*%d" % (i,j))
+                self.tmult[i,j] = res
+                self.tmult_global[i,j] = self.lelements[res]
         self.is_faithful()
 
     def is_faithful(self):
@@ -138,10 +138,10 @@ class TOh(object):
         u, ind = np.unique(self.tmult, return_index=True)
         if len(u) != self.order:
             self.faithful = False
-        tmp = np.sum(self.tmult, axis=0)
+        tmp = np.sum(self.tmult_global, axis=0)
         if not utils._eq(tmp, checksum):
             self.faithful = False
-        tmp = np.sum(self.tmult, axis=1)
+        tmp = np.sum(self.tmult_global, axis=1)
         if not utils._eq(tmp, checksum):
             self.faithful = False
 
@@ -157,14 +157,17 @@ class TOh(object):
     def make_conjugacy_relations(self):
         # 2 nested for loops
         for i, j in it.product(range(self.order), repeat=2):
+            #print("indices %d, %d" % (i,j))
             for k in range(self.order):
                 k_inv = self.linv[k]
                 j_k = self.tmult[j,k]
                 k_inv_j_k = self.tmult[k_inv, j_k]
+                #print("k^-1 (%d) * (j (%d) * k (%d)) (%d) = %d (check %d)" % (
+                #        k_inv, j, k, j_k, k_inv_j_k, i))
                 if k_inv_j_k == i:
                     self.tconjugacy[i,j] = 1
                     break
-    
+
     def assign_classes(self):
         # assign a class representative for each class
         tmp = np.ones((self.order,), dtype=int) * -1
@@ -281,17 +284,21 @@ class TOh(object):
         pass
 
     def print_mult_table(self):
-        print("")
-        tmpstr = [" %3d" % x for x in range(self.order)]
-        tmpstr = "|".join(tmpstr)
-        tmpstr = "".join(["    |", tmpstr])
-        print(tmpstr)
-        print("_".center(self.order*4, "_"))
-        for i in range(self.order):
-            tmpstr = [" %3d" % x for x in self.tmult[i]]
-            tmpstr = "|".join(tmpstr)
-            tmpstr = "".join([" %3d|" % i, tmpstr])
-            print(tmpstr)
+        print("multiplication table\n")
+        n = int(self.order)/int(self.npar)
+        line = "_".center(self.npar*5, "_")
+        for n1 in range(n):
+            head = ["%2d" % (x+n1*self.npar) for x in range(self.npar)]
+            head = " ".join(head)
+            head = "".join(["\n   [", head, "]"])
+            for n2 in range(n):
+                print(head)
+                print(line)
+                for i in range(self.npar):
+                    tmpstr = ["%2d" % x for x in self.tmult[i+n2*self.npar,n1*self.npar:(n1+1)*self.npar]]
+                    tmpstr = " ".join(tmpstr)
+                    tmpstr = "".join(["%2d | [" % (i+n2*self.npar), tmpstr, "]"])
+                    print(tmpstr)
 
     def print_char_table(self):
         def _tostring(x):
@@ -674,6 +681,12 @@ class TOh2Dp(TOhRep):
             self.mx = gg.genEpMF1(elements)
         else:
             raise RuntimeError("reference momentum not implemented")
+
+class TOh3Dp(TOhRep):
+    def __init__(self, elements):
+        TOhRep.__init__(self, 3)
+        self.name = "TOh3D"
+        self.mx = gg.gen3D(elements)
 
 if __name__ == "__main__":
     print("for checks execute the test script")

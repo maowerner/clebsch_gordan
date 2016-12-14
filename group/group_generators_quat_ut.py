@@ -145,7 +145,6 @@ class TestAllElements(unittest.TestCase):
         for i in res:
             self.assertFalse(utils._eq(i))
 
-
 if __name__ == "__main__":
     unittest.main(verbosity=2)
 

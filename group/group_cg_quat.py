@@ -5,7 +5,7 @@ import itertools as it
 
 import group_class
 import utils
-from rotations import _all_rotations
+from rotations import _all_rotations, mapping
 
 class TOhCG(object):
     def __init__(self, p, p1, p2, groups=None):
@@ -41,6 +41,13 @@ class TOhCG(object):
         # is set to None if at least one group is None
         self.coset1 = self.gen_coset(self.g1)
         self.coset2 = self.gen_coset(self.g2)
+        test = []
+        for c in self.coset1:
+            tmp = [mapping.index(x) for x in c]
+            test.append(tmp)
+        print("mapped to old")
+        print(np.asarray(test))
+
         #print(self.coset1)
         #print(self.coset2)
 
@@ -124,6 +131,8 @@ class TOhCG(object):
                 count += 1
         # calc the cosets
         uniq = np.unique(coset)
+        print("debug gen_coset")
+        print(uniq)
         cnum = 1 # coset number
         for elem in self.g0.lelements:
             if elem in uniq:
@@ -132,15 +141,19 @@ class TOhCG(object):
             for elem1 in g1.lelements:
                 if elem1 in self.g0.lelements:
                     look = self.g0.lelements.index(elem1)
-                    el = self.g0.tmult_global[look, elem]
+                    #el = self.g0.tmult_global[look, elem]
+                    el = self.g0.tmult_global[elem, look]
                     coset[cnum, count] = el
                     count += 1
             cnum += 1
             uniq = np.unique(coset)
+            print("started with element %d" %elem)
+            print(uniq)
         if len(uniq) != self.g0.order:
             print("some elements got lost!")
         if cnum != n:
             print("some coset not found!")
+        print("end debug gen_coset")
         return coset
 
     def gen_ind_reps(self, g, g1, irstr, coset):
@@ -207,13 +220,17 @@ class TOhCG(object):
             print("some vectors not sorted")
 
     def check_coset(self, pref, p, coset):
+        #print("check_coset: pref=%r, p=%r" % (pref, p))
+        #print("coset = %r" % coset)
         res = []
         for elem in coset:
             look = self.g0.lelements.index(elem)
             quat = self.g0.elements[look]
             rvec = quat.rotation_matrix().dot(pref)
             c1 = utils._eq(rvec, p)
-            c2 = utils._eq(rvec, -p)
+            #c2 = utils._eq(rvec, -p)
+            c2 = False
+            #print("rotated vector (%d): %r" % (elem, rvec))
             if c1 or c2:
                 res.append(True)
             else:

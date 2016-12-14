@@ -3,6 +3,7 @@ with parity.
 """
 import numpy as np
 import scipy.misc
+import quat
 
 class RotObj(object):
     """Rotation object"""
@@ -40,7 +41,7 @@ class RotObj(object):
     def rot_vector(self, vec):
         # implements Rodrigues formula
         par = self.vector_norm*np.dot(vec, self.vector_norm)
-        per = np.cross(vec, self.vector_norm)
+        per = np.cross(self.vector_norm, vec)
         si = np.sin(self.omega)
         co = np.cos(self.omega)
         return vec*co + per*si + par*(1.-co)
@@ -89,6 +90,11 @@ class RotObj(object):
                 mat[m1+j, m2+j] = self.u_element(j, m1, m2)
         return mat
 
+    def to_quaternion(self):
+        v = np.asarray([np.cos(self.omega/2), 0., 0., 0.])
+        v[1:] = self.vector_norm * np.sin(self.omega/2)
+        return quat.QNew.create_from_vector(v, 1)
+
 _all_rotations = [RotObj([1,0,0], 0),
         RotObj([1,0,0],   np.pi  ), RotObj([0,1,0],   np.pi  ), RotObj([0,0,1],   np.pi  ),
         RotObj([1,0,0],  -np.pi  ), RotObj([0,1,0],  -np.pi  ), RotObj([0,0,1],  -np.pi  ),
@@ -106,10 +112,7 @@ _all_rotations = [RotObj([1,0,0], 0),
         RotObj([1,-1,0], -np.pi), RotObj([1,0,1],  -np.pi), RotObj([-1,0,1], -np.pi),
         RotObj([1,1,1], 2*np.pi)]
 
-class NewQuaternions(object):
-    def __init__(self):
-        self.members = np.zeros((5,))
-        self.members[-1] = 1.
+mapping = [0, 1, 2, 3, 49, 50, 51, 12, 13, 14, 15, 16, 17, 63, 64, 65, 60, 61, 62, 4, 10, 5, 11, 8, 6, 9, 7, 56, 54, 57, 55, 52, 58, 53, 59, 69, 23, 18, 67, 20, 70, 21, 71, 66, 19, 68, 22, 48]
 
 if __name__ == "__main__":
     print("for checks execute the test script")

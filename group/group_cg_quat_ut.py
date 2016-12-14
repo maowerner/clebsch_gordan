@@ -8,6 +8,7 @@ import utils
 import group_class_quat as gc
 import group_cg_quat as gcg
 
+@unittest.skip("skip CMF")
 class TestCG_CMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):

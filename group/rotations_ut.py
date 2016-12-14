@@ -6,6 +6,7 @@ import numpy as np
 
 import utils
 import rotations as rot
+import quat
 
 _prec=1e-10
 
@@ -200,6 +201,19 @@ class TestAllRotations_001(unittest.TestCase):
             msg = "element %d failed:\n%r\nmapped to\n%r\nexpected:\n%r" % (
                     el, self.v, res, res_theo)
             self.assertEqual(res_theo, res, msg=msg)
+
+    def test_mapping_to_quat(self):
+        elements = [x for x in range(48)]
+        mapped = []
+        for el in elements:
+            q = rot._all_rotations[el].to_quaternion()
+            for i, v in enumerate(quat.qPar):
+                if q.comp(v):
+                    mapped.append(i)
+                elif q.comp(np.negative(v)):
+                    mapped.append(i+48)
+        print(mapped)
+        self.assertEqual(len(mapped), 48)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

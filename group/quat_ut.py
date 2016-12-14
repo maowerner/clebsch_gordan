@@ -68,5 +68,21 @@ class TestQNew(unittest.TestCase):
         self.assertTrue(q1.comp(self.vec))
         self.assertFalse(q1.comp(self.vec+1.))
 
+    def test_rotation_matrix_unit_normalized(self):
+        v = np.asarray([1., 0., 0., 0.])
+        q1 = quat.QNew.create_from_vector(v, 1)
+        res = q1.rotation_matrix()
+        res_theo = np.identity(3)
+        self.assertEqual(res, res_theo)
+
+    def test_rotation_matrix_(self):
+        q1 = quat.QNew.create_from_vector(self.vec, 1)
+        res = q1.rotation_matrix()
+        res_theo = np.asarray([
+                [0., 0., 1.],
+                [1., 0., 0.],
+                [0., 1., 0.]])
+        self.assertEqual(res, res_theo)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

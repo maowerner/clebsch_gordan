@@ -98,7 +98,7 @@ class QNew(object):
 
     # code inspired by the quaternion package of moble
     # https://github.com/moble/quaternion
-    def rotation_matrix(self):
+    def rotation_matrix(self, inv=False):
         n = self.norm()
         if np.abs(n) < self.prec:
             raise ZeroDivisionError("Norm of quaternion is zero.")
@@ -119,6 +119,8 @@ class QNew(object):
                     2*(_q[2]*_q[3] - _q[1]*_q[0])/n],
                  [2*(_q[1]*_q[3] - _q[2]*_q[0])/n, 2*(_q[2]*_q[3] + _q[1]*_q[0])/n,
                     1-2*(_q[1]**2 + _q[2]**2)/n]])
+        if inv:
+            res *= self.i
         return res
 
     def R(self, j, mp, m):
