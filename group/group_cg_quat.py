@@ -5,7 +5,6 @@ import itertools as it
 
 import group_class
 import utils
-from rotations import _all_rotations, mapping
 
 class TOhCG(object):
     def __init__(self, p, p1, p2, groups=None):
@@ -41,13 +40,6 @@ class TOhCG(object):
         # is set to None if at least one group is None
         self.coset1 = self.gen_coset(self.g1)
         self.coset2 = self.gen_coset(self.g2)
-        test = []
-        for c in self.coset1:
-            tmp = [mapping.index(x) for x in c]
-            test.append(tmp)
-        print("mapped to old")
-        print(np.asarray(test))
-
         #print(self.coset1)
         #print(self.coset2)
 
@@ -131,8 +123,6 @@ class TOhCG(object):
                 count += 1
         # calc the cosets
         uniq = np.unique(coset)
-        print("debug gen_coset")
-        print(uniq)
         cnum = 1 # coset number
         for elem in self.g0.lelements:
             if elem in uniq:
@@ -147,13 +137,10 @@ class TOhCG(object):
                     count += 1
             cnum += 1
             uniq = np.unique(coset)
-            print("started with element %d" %elem)
-            print(uniq)
         if len(uniq) != self.g0.order:
             print("some elements got lost!")
         if cnum != n:
             print("some coset not found!")
-        print("end debug gen_coset")
         return coset
 
     def gen_ind_reps(self, g, g1, irstr, coset):
@@ -194,14 +181,11 @@ class TOhCG(object):
             return
         # search for conjugacy class so that
         # R*p_ref = p
-        print("sort momenta")
         res1 = []
         res2 = []
         for p1 in self.momenta1:
-            print("momentum %r" % p1)
             for i,c in enumerate(self.coset1):
                 t = self.check_coset(self.pref1, p1, c)
-                print("coset %i, t = %r" % (i, t))
                 if np.all(t):
                     res1.append((p1, i))
                     break
@@ -214,7 +198,6 @@ class TOhCG(object):
         self.smomenta1 = res1
         if len(self.smomenta1) != len(self.momenta1):
             print("some vectors not sorted")
-            print(self.smomenta1)
         self.smomenta2 = res2
         if len(self.smomenta2) != len(self.momenta2):
             print("some vectors not sorted")
@@ -226,7 +209,7 @@ class TOhCG(object):
         for elem in coset:
             look = self.g0.lelements.index(elem)
             quat = self.g0.elements[look]
-            rvec = quat.rotation_matrix().dot(pref)
+            rvec = quat.rotation_matrix(True).dot(pref)
             c1 = utils._eq(rvec, p)
             #c2 = utils._eq(rvec, -p)
             c2 = False
