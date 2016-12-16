@@ -420,11 +420,31 @@ class TOh(object):
 
     def find_1D(self):
         ir = TOh1D(self.elements)
-        ir.name = "A1"
+        ir.name = "A1g"
         if ir.is_representation(self.tmult):
             self.append_irrep(ir)
-        self.flip = [x for x in self.flip_reps(ir)]
-        self.suffixes = ["%d"%x for x in range(2,10)] # g/u for even odd
+        self.flip = np.asarray([x for x in self.flip_reps(ir)], dtype=int)
+        # temporary suffixes
+        self.suffixes = ["%dx"%x for x in range(2,len(self.flip)+2)]
+        # create the correct suffixes
+        tmpu = np.asarray([self.elements[x].i for x in self.crep], dtype=int)
+        for i, f in enumerate(self.flip):
+            if np.allclose(f, tmpu):
+                self.suffixes[i] = "1u"
+                break
+        count = 2
+        for i in range(len(self.suffixes)):
+            if not self.suffixes[i].endswith("x"):
+                continue
+            self.suffixes[i] = "%dg" % count
+            tmpi = tmpu * self.flip[i]
+            ind = 0
+            for j, f in enumerate(self.flip):
+                if np.allclose(tmpi, f):
+                    ind = j
+                    break
+            self.suffixes[ind] = "%du" % count
+            count += 1
         for f, s in zip(self.flip, self.suffixes):
             ir = TOh1D(self.elements)
             ir.flip_classes(f, self.lclasses)
@@ -545,7 +565,7 @@ class TOh(object):
         if self.debug > 2:
             print("finding %dD irreps" % dim)
         ir = rep()
-        ir.name = "".join([_name, "1"])
+        ir.name = "".join([_name, "1g"])
         check1 = ir.is_representation(self.tmult)
         check2 = self.check_ortho(ir)
         if check1 and check2:

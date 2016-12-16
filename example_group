@@ -9,58 +9,57 @@ def main():
     jmax = 5
 
     print(" CMF ".center(50, "*"))
-    g = group.TOh(withinversion=True, irreps=False)
-    #g = group.TOh(withinversion=True, irreps=True)
+    #g = group.TOh(irreps=False)
+    g = group.TOh(irreps=True)
     #for gi in g.irreps:
     #    print(" %s ".center(20, "*") % (g.name))
     #    gi.characters()
     g.print_char_table()
-    g.print_mult_table()
+    #g.print_mult_table()
     g.print_class_members()
     #print("SU(2) characters")
     #for j in range(1, jmax):
     #    print("j=%f" % ((j-1)/2.))
     #    print(g.characters_of_SU2(j))
-    return
 
     print(" MF1 ".center(50, "*"))
     pref = np.asarray([0., 0., 1.])
-    g = group.TOh(pref=pref, withinversion=False, irreps=True)
+    g = group.TOh(pref=pref, irreps=True)
     #for gi in g.irreps:
     #    print(" %s ".center(20, "*") % (g.name))
     #    gi.characters()
     g.print_char_table()
     g.print_class_members()
-    print("SU(2) characters")
-    for j in range(1, jmax):
-        print("j=%f" % ((j-1)/2.))
-        print(g.characters_of_SU2(j))
+    #print("SU(2) characters")
+    #for j in range(1, jmax):
+    #    print("j=%f" % ((j-1)/2.))
+    #    print(g.characters_of_SU2(j))
 
     print(" MF2 ".center(50, "*"))
     pref = np.asarray([1., 1., 0.])
-    g = group.TOh(pref=pref, withinversion=True, irreps=True)
+    g = group.TOh(pref=pref, irreps=True)
     #for gi in g.irreps:
     #    print(" %s ".center(20, "*") % (g.name))
     #    gi.characters()
     g.print_char_table()
     g.print_class_members()
-    print("SU(2) characters")
-    for j in range(1, jmax):
-        print("j=%f" % ((j-1)/2.))
-        print(g.characters_of_SU2(j))
+    #print("SU(2) characters")
+    #for j in range(1, jmax):
+    #    print("j=%f" % ((j-1)/2.))
+    #    print(g.characters_of_SU2(j))
 
     print(" MF3 ".center(50, "*"))
     pref = np.asarray([1., 1., 1.])
-    g = group.TOh(pref=pref, withinversion=True, irreps=True)
+    g = group.TOh(pref=pref, irreps=True)
     #for gi in g.irreps:
     #    print(" %s ".center(20, "*") % (g.name))
     #    gi.characters()
     g.print_char_table()
     g.print_class_members()
-    print("SU(2) characters")
-    for j in range(1, jmax):
-        print("j=%f" % ((j-1)/2.))
-        print(g.characters_of_SU2(j))
+    #print("SU(2) characters")
+    #for j in range(1, jmax):
+    #    print("j=%f" % ((j-1)/2.))
+    #    print(g.characters_of_SU2(j))
 
 if __name__ == "__main__":
     try:

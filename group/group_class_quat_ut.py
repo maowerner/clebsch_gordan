@@ -9,7 +9,7 @@ import group_class as gcold
 import utils
 from rotations import mapping
 
-#@unittest.skip("bla")
+@unittest.skip("bla")
 class TestTOhCMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -67,7 +67,7 @@ class TestTOhCMF(unittest.TestCase):
         res_theo = np.asarray([2.,0.,1.,sq2,0.,-2.,0.,-1.,-sq2,0.,-2.,-1.,-sq2,2.,1.,sq2])
         self.assertEqual(res, res_theo)
 
-#@unittest.skip("bla")
+@unittest.skip("bla")
 class TestTOhMF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -133,7 +133,7 @@ class TestTOhMF2(unittest.TestCase):
         res_theo = np.asarray([2.,0.,0.,0.,-2.,0.,0.,0.,-2.,2.])
         self.assertEqual(res, res_theo)
 
-#@unittest.skip("bla")
+@unittest.skip("bla")
 class TestTOhMF3(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -216,7 +216,7 @@ class TestTOh_full_MF2(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
-#@unittest.skip("bla")
+@unittest.skip("bla")
 class TestTOh_full_MF3(unittest.TestCase):
     @classmethod
     def setUpClass(self):
