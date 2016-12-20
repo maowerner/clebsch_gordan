@@ -55,10 +55,10 @@ class TOhCG(object):
             self.gamma1 = None
             self.gamma2 = None
         else:
-            irstr = "A1" if p1 < 1e-6 else "A2"
-            self.gamma1 = self.gen_ind_reps(self.g, self.g1, irstr, self.coset1)
-            irstr = "A1" if p2 < 1e-6 else "A2"
-            self.gamma2 = self.gen_ind_reps(self.g, self.g2, irstr, self.coset2)
+            irstr = "A1u" if p1 < 1e-6 else "A2g"
+            self.gamma1 = self.gen_ind_reps(self.g1, irstr, self.coset1)
+            irstr = "A1u" if p2 < 1e-6 else "A2g"
+            self.gamma2 = self.gen_ind_reps(self.g2, irstr, self.coset2)
         #print(self.gamma1[:5])
 
         self.irreps = []
@@ -68,20 +68,12 @@ class TOhCG(object):
         # since A1 and A2 are 1D, set mu to 0
         self.mu1 = 0
         self.mu2 = 0
-        if self.p == 0:
-            # in this case chose the hightest option
-            self.i1 = -1
-            self.i2 = -1
-            self.i1i2 = [(self.pref, -1, -1)]
-        else:
-            self.i1i2 = []
-            for m in self.momenta:
-                for ((m1, i1), (m2, i2)) in it.product(self.smomenta1, self.smomenta2):
-                    if utils._eq(m1+m2-m):
-                        self.i1i2.append((m,i1,i2))
-                        self.i1 = i1
-                        self.i2 = i2
-                        break
+        self.i1i2 = []
+        for m in self.momenta:
+            for ((m1, i1), (m2, i2)) in it.product(self.smomenta1, self.smomenta2):
+                if utils._eq(m1+m2-m):
+                    self.i1i2.append((m,i1,i2))
+                    break
 
     def gen_momenta(self):
         pm = 4 # maximum component in each direction
@@ -143,34 +135,23 @@ class TOhCG(object):
             print("some coset not found!")
         return coset
 
-    def gen_ind_reps(self, g, g1, irstr, coset):
+    def gen_ind_reps(self, g1, irstr, coset):
         ir = g1.irreps[g1.irrepsname.index(irstr)]
         dim = ir.dim
         ndim = (self.g0.order, coset.shape[0]*dim, coset.shape[0]*dim)
         gamma = np.zeros(ndim, dtype=complex)
         for ind, r in enumerate(self.g0.lelements):
-            # take the first elements of the coset as representatives
-            for c1, rj in enumerate(coset[:,0]):
-                # translate to multiplication table
-                el1 = self.g0.lelements.index(rj)
-                # get element
-                rrj = self.g0.tmult_global[ind,el1]
-                i1 = self.g0.lelements.index(rrj)
-                ind1 = slice(c1*dim, (c1+1)*dim)
-                for c2, ri in enumerate(coset[:,0]):
-                    # translate to multiplication table and get inverse
-                    el2 = self.g0.lelements.index(ri)
-                    riinv = self.g0.linv_global[el2]
-                    i2 = self.g0.lelements.index(rrj)
-                    # get element
-                    riinvrrj = self.g0.tmult_global[i2, i1]
+            for cj, rj in enumerate(coset[:,0]):
+                rrj = self.g0.tmult[r, rj]
+                indj = slice(cj*dim, (cj+1)*dim)
+                for ci, ri in enumerate(coset[:,0]):
+                    riinv = self.g0.linv[ri]
+                    riinvrrj = self.g0.tmult[riinv, rrj]
+                    indi = slice(ci*dim, (ci+1)*dim)
                     if riinvrrj not in coset[0]:
                         continue
-                    # if in subgroup, look up position of element
                     elem = g1.lelements.index(riinvrrj)
-                    ind2 = slice(c2*dim,(c2+1)*dim)
-                    # set induced representation
-                    gamma[ind, ind1, ind2] = ir.mx[elem]
+                    gamma[ind, indi, indj] = ir.mx[elem]
         return gamma
 
     def sort_momenta(self):
@@ -203,8 +184,6 @@ class TOhCG(object):
             print("some vectors not sorted")
 
     def check_coset(self, pref, p, coset):
-        #print("check_coset: pref=%r, p=%r" % (pref, p))
-        #print("coset = %r" % coset)
         res = []
         for elem in coset:
             look = self.g0.lelements.index(elem)
@@ -213,7 +192,6 @@ class TOhCG(object):
             c1 = utils._eq(rvec, p)
             #c2 = utils._eq(rvec, -p)
             c2 = False
-            #print("rotated vector (%d): %r" % (elem, rvec))
             if c1 or c2:
                 res.append(True)
             else:
@@ -249,10 +227,11 @@ class TOhCG(object):
         j1, j2, i1, i2 = self.check_all_cosets(p, p1, p2)
         cg = np.zeros((ir.dim,ir.dim), dtype=complex)
         for ind, r in enumerate(self.g.lelements):
+            # representation matrix for element
+            rep = ir.mx[ind]
             # look up the index of the group element in the
             # g0 group
             look = self.g0.lelements.index(r)
-            rep = ir.mx[ind]
             # hard coded for pi-pi scattering
             g1 = self.gamma1[look,j1, i1]
             if utils._eq(g1):

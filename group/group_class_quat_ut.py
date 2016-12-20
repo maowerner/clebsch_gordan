@@ -9,7 +9,7 @@ import group_class as gcold
 import utils
 from rotations import mapping
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOhCMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -67,7 +67,7 @@ class TestTOhCMF(unittest.TestCase):
         res_theo = np.asarray([2.,0.,1.,sq2,0.,-2.,0.,-1.,-sq2,0.,-2.,-1.,-sq2,2.,1.,sq2])
         self.assertEqual(res, res_theo)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOhMF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -100,7 +100,7 @@ class TestTOhMF1(unittest.TestCase):
         res_theo = np.asarray([2.,0.,sq2,0.,0.,-2.,-sq2])
         self.assertEqual(res, res_theo)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOhMF2(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -111,10 +111,10 @@ class TestTOhMF2(unittest.TestCase):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
 
     def test_classes(self):
-        self.assertEqual(self.group.nclasses, 10)
-        classdims = np.asarray([1,2,2,2,1,2,2,2,1,1])
+        self.assertEqual(self.group.nclasses, 5)
+        classdims = np.asarray([1,2,2,2,1])
         self.assertEqual(self.group.cdim, classdims)
-        self.assertEqual(self.group.lclasses.shape, (10, 2))
+        self.assertEqual(self.group.lclasses.shape, (5, 2))
 
     def test_orthogonality(self):
         res1, res2 = self.group.check_orthogonalities()
@@ -123,17 +123,16 @@ class TestTOhMF2(unittest.TestCase):
 
     def test_su2_characters_1(self):
         res = self.group.characters_of_SU2(1)
-        res_theo = np.ones((10,))
-        res_theo[4:8] *= -1.
-        res_theo[-1] *= -1.
+        res_theo = np.ones((5,))
+        res_theo[2:4] *= -1.
         self.assertEqual(res, res_theo)
 
     def test_su2_characters_2(self):
         res = self.group.characters_of_SU2(2)
-        res_theo = np.asarray([2.,0.,0.,0.,-2.,0.,0.,0.,-2.,2.])
+        res_theo = np.asarray([2.,0.,0.,0.,-2.])
         self.assertEqual(res, res_theo)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOhMF3(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -166,7 +165,7 @@ class TestTOhMF3(unittest.TestCase):
         res_theo = np.asarray([2.,1.,0.,-2.,-1.,-0.])
         self.assertEqual(res, res_theo)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOh_full_CMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -199,7 +198,7 @@ class TestTOh_full_MF1(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOh_full_MF2(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -216,7 +215,7 @@ class TestTOh_full_MF2(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOh_full_MF3(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -233,7 +232,7 @@ class TestTOh_full_MF3(unittest.TestCase):
     def test_working(self):
         self.assertTrue(True)
 
-@unittest.skip("bla")
+#@unittest.skip("bla")
 class TestTOh3Dp(unittest.TestCase):
     @classmethod
     def setUpClass(self):

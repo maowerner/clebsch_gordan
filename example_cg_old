@@ -6,22 +6,20 @@ import itertools as it
 import group
 
 def main():
-    prefs = [[0.,0.,0.], [0.,0.,1.], [1.,1.,0.], [1.,1.,1.]]
-    prefs = np.asarray(prefs)
     p2max = 4
     jmax = 3
     groups = []
 
     # initialize groups
     for p2 in range(p2max):
-        g = group.TOh(pref=prefs[p2], irreps=True)
+        g = group.OhGroup(p2=p2, instances=True)
         groups.append(g)
 
     # calc coefficients
     print(" CMF ".center(40, "*"))
-    irnames = groups[0].irrepsname
+    irnames = groups[0].lirreps
     for p in range(p2max):
-        cgs = group.TOhCG(0, p, p, groups)
+        cgs = group.OhCG(0, p, p, groups)
         for ir in irnames:
             a, b, c = cgs.get_pion_cg(ir)
             if b is not None:
@@ -29,7 +27,7 @@ def main():
                 group.display(b, c)
 
     print(" MF1 ".center(40, "*"))
-    irnames = groups[1].irrepsname
+    irnames = groups[1].lirreps
     for i, j in it.product(range(p2max), repeat=2):
         if j-i != 1:
             continue
@@ -37,7 +35,7 @@ def main():
             empty = 3
         else:
             empty = 4
-        cgs = group.TOhCG(1, i, j, groups)
+        cgs = group.OhCG(1, i, j, groups)
         print("%d x %d -> 1" % (i, j))
         for ir in irnames:
             a, b, c = cgs.get_pion_cg(ir)

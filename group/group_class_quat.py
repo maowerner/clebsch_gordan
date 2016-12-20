@@ -445,6 +445,16 @@ class TOh(object):
                     break
             self.suffixes[ind] = "%du" % count
             count += 1
+        # sort the vectors
+        tmp = ["1u"]
+        for i in range(2,count):
+            tmp.append("%dg" % i)
+            tmp.append("%du" % i)
+        tmpf = []
+        for s in tmp:
+            tmpf.append(self.flip[self.suffixes.index(s)])
+        self.flip = np.asarray(tmpf)
+        self.suffixes = tmp
         for f, s in zip(self.flip, self.suffixes):
             ir = TOh1D(self.elements)
             ir.flip_classes(f, self.lclasses)
@@ -597,7 +607,7 @@ class TOh(object):
         if self.debug > 2:
             print("finding special %dD irreps" % dim)
         ir = rep()
-        ir.name = "".join([_name, "1"])
+        ir.name = "".join([_name, "1g"])
         check1 = ir.is_representation(self.tmult)
         check2 = self.check_ortho(ir)
         if check1 and check2:

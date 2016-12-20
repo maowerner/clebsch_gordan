@@ -8,7 +8,7 @@ import utils
 import group_class_quat as gc
 import group_cg_quat as gcg
 
-@unittest.skip("skip CMF")
+#@unittest.skip("skip CMF")
 class TestCG_CMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -37,13 +37,11 @@ class TestCG_CMF(unittest.TestCase):
         self.assertEqual(self.gc.irreps, [])
         self.assertEqual(self.gc.cgs, [])
         # check indices
-        self.assertEqual(self.gc.i1, -1)
-        self.assertEqual(self.gc.i2, -1)
         self.assertEqual(self.gc.mu1, 0)
         self.assertEqual(self.gc.mu2, 0)
         self.assertEqual(len(self.gc.i1i2), 1)
         self.assertEqual(self.gc.i1i2[0][0], tmp)
-        self.assertEqual(self.gc.i1i2[0][1:], (-1, -1))
+        self.assertEqual(self.gc.i1i2[0][1:], (0,0))
 
     def test_momenta(self):
         tmp = np.asarray([0., 0., 0.])
@@ -67,18 +65,16 @@ class TestCG_CMF(unittest.TestCase):
         # check second coset
         res2 = self.gc.gen_coset(self.gc.g2)
         self.assertEqual(res1, res2)
-        self.assertEqual(res1.shape, (1,48))
-        self.assertEqual(res2.shape, (1,48))
+        self.assertEqual(res1.shape, (1,96))
+        self.assertEqual(res2.shape, (1,96))
 
     def test_induced_representations(self):
-        res_theo = np.ones((48, 1, 1), dtype=complex)
+        res_theo = np.ones((96, 1, 1), dtype=complex)
         # check the first coset
-        res = self.gc.gen_ind_reps(self.gc.g, self.gc.g1, "A1",
-                self.gc.coset1)
+        res = self.gc.gen_ind_reps(self.gc.g1, "A1g", self.gc.coset1)
         self.assertEqual(res, res_theo)
         # check the second coset
-        res = self.gc.gen_ind_reps(self.gc.g, self.gc.g2, "A1",
-                self.gc.coset2)
+        res = self.gc.gen_ind_reps(self.gc.g2, "A1g", self.gc.coset2)
         self.assertEqual(res, res_theo)
 
     def test_sort_momenta(self):
@@ -93,63 +89,66 @@ class TestCG_CMF(unittest.TestCase):
     def test_check_coset(self):
         res = self.gc.check_coset(self.gc.pref1, self.gc.pref1,
                 self.gc.coset1[0])
-        self.assertEqual(len(res), 48)
+        self.assertEqual(len(res), 96)
         self.assertTrue(np.all(res))
         res = self.gc.check_coset(self.gc.pref2, self.gc.pref2,
                 self.gc.coset2[0])
-        self.assertEqual(len(res), 48)
+        self.assertEqual(len(res), 96)
         self.assertTrue(np.all(res))
 
     def test_check_all_cosets(self):
         tmp = np.zeros((3,))
         res = self.gc.check_all_cosets(tmp, tmp, tmp)
-        self.assertEqual(res, (0,0,-1,-1))
+        self.assertEqual(res, (0,0,0,0))
 
-    def test_calc_pion_cg_A1(self):
+    def test_calc_pion_cg_zero(self):
         tmp = np.zeros((3,))
-        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "A1")
+        irnames = ["A1u", "A2g", "A2u", "E1g", "E1u", "E2g", "E2u",
+                "T1g", "T1u", "T2g", "T2u", "Ep1g", "Ep1u", "G1g", "G1u"]
+        for irn in irnames:
+            dim = 0
+            if irn[0] in ["A", "K"]:
+                dim = 1
+            elif irn[0] == "E":
+                dim = 2
+            elif irn[0] == "T":
+                dim = 3
+            elif irn[0] == "G":
+                dim = 4
+            else:
+                raise RuntimeError("cannot handle irrep %s" % irn)
+            res = self.gc.calc_pion_cg(tmp, tmp, tmp, irn)
+            cg_theo = np.zeros((dim, dim), dtype=complex)
+            msg = "irrep %s:\nresult\n%r\n\nexpected:\n%r" % (irn, res, cg_theo)
+            self.assertEqual(res, cg_theo, msg=msg)
+
+    def test_calc_pion_cg_A1g(self):
+        tmp = np.zeros((3,))
+        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "A1g")
         cg_theo = np.ones((1,1), dtype=complex)
         self.assertEqual(res, cg_theo)
 
-    def test_calc_pion_cg_A2(self):
-        tmp = np.zeros((3,))
-        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "A1")
-        cg_theo = np.ones((1,1), dtype=complex)
-        self.assertEqual(res, cg_theo)
-
-    def test_calc_pion_cg_E(self):
-        tmp = np.zeros((3,))
-        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "Ep1")
-        cg_theo = np.zeros((2,2), dtype=complex)
-        self.assertEqual(res, cg_theo, msg="might fail due to phase")
-        #self.assertEqual(res, cg_theo)
-
-    def test_calc_pion_cg_T1(self):
-        tmp = np.zeros((3,))
-        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "T1")
-        cg_theo = np.zeros((3,3), dtype=complex)
-        self.assertEqual(res, cg_theo, msg="might fail due to phase")
-        #self.assertEqual(res, cg_theo)
-
-    def test_calc_pion_cg_T2(self):
-        tmp = np.zeros((3,))
-        res = self.gc.calc_pion_cg(tmp, tmp, tmp, "T2")
-        cg_theo = np.zeros((3,3), dtype=complex)
-        self.assertEqual(res, cg_theo, msg="might fail due to phase")
-        #self.assertEqual(res, cg_theo)
-
-    def test_get_pion_cg_A1(self):
-        res = self.gc.get_pion_cg("A1")
+    def test_get_pion_cg_A1g(self):
+        res = self.gc.get_pion_cg("A1g")
         res_theo = np.ones((1,1), dtype=complex)
         self.assertEqual(len(res), 3)
-        self.assertEqual(res[0], "A1")
+        self.assertEqual(res[0], "A1g")
         self.assertEqual(res[1], res_theo)
         # res[2] is already checked in test_momenta
 
-    def test_get_pion_cg_A1_twice(self):
-        res1 = self.gc.get_pion_cg("A1")
-        res2 = self.gc.get_pion_cg("A1")
+    def test_get_pion_cg_A1g_twice(self):
+        res1 = self.gc.get_pion_cg("A1g")
+        res2 = self.gc.get_pion_cg("A1g")
         self.assertIs(res1[1], res2[1])
+
+    def test_get_pion_cg_zero(self):
+        irnames = ["A1u", "A2g", "A2u", "E1g", "E1u", "E2g", "E2u",
+                "T1g", "T1u", "T2g", "T2u", "Ep1g", "Ep1u", "G1g", "G1u"]
+        for irn in irnames:
+            res = self.gc.get_pion_cg(irn)
+            msg = "irrep %s failed" % irn
+            self.assertEqual(res[0], irn)
+            self.assertIsNone(res[1], msg=msg)
 
     def test_norm_cgs_1(self):
         # since the norm is coupled to the total momentum
@@ -188,14 +187,12 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         self.assertEqual(self.gc.irreps, [])
         self.assertEqual(self.gc.cgs, [])
         # check indices
-        self.assertEqual(self.gc.i1, -1)
-        self.assertEqual(self.gc.i2, -1)
         self.assertEqual(self.gc.mu1, 0)
         self.assertEqual(self.gc.mu2, 0)
         self.assertEqual(len(self.gc.i1i2), 1)
         tmp = np.asarray([0., 0., 0.])
         self.assertEqual(self.gc.i1i2[0][0], tmp)
-        self.assertEqual(self.gc.i1i2[0][1:], (-1, -1))
+        self.assertEqual(self.gc.i1i2[0][1:], (3,2))
 
     def test_momenta(self):
         tmp1 = np.asarray([0., 0., 0.])
@@ -228,12 +225,10 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     def test_induced_representations(self):
         res_theo = np.ones((self.g[0].order,), dtype=complex)*6.
         # check the first coset
-        res = self.gc.gen_ind_reps(self.gc.g, self.gc.g1, "A1",
-                self.gc.coset1)
+        res = self.gc.gen_ind_reps(self.gc.g1, "A1g", self.gc.coset1)
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
         # check the second coset
-        res = self.gc.gen_ind_reps(self.gc.g, self.gc.g2, "A1",
-                self.gc.coset2)
+        res = self.gc.gen_ind_reps(self.gc.g2, "A1g", self.gc.coset2)
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
 
     def test_sort_momenta(self):
@@ -246,8 +241,8 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         for i in range(len(self.gc.smomenta1)):
             self.assertEqual(self.gc.smomenta1[i][0], tmp2[i])
             self.assertEqual(self.gc.smomenta1[i][1], tmp1[i])
-            self.assertEqual(self.gc.smomenta2[i][0], tmp2[5-i])
-            self.assertEqual(self.gc.smomenta2[i][1], tmp1[5-i])
+            self.assertEqual(self.gc.smomenta2[i][0], tmp2[i])
+            self.assertEqual(self.gc.smomenta2[i][1], tmp1[i])
 
     def test_check_coset_1(self):
         # check first subset of elements
@@ -277,68 +272,75 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         tmp0 = np.zeros((3,))
         tmp1 = np.asarray([1., 0. ,0.])
         res = self.gc.check_all_cosets(tmp0, tmp1, tmp1)
-        self.assertEqual(res, (2,2,-1,-1))
+        self.assertEqual(res, (2,2,3,2))
 
-    #def test_calc_pion_cg_A1(self):
-    #    tmp1 = np.zeros((3,))
-    #    tmp2 = np.asarray([0.,0.,1.])
-    #    res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "A1")
-    #    cg_theo = np.ones((1,1), dtype=complex)
-    #    self.assertEqual(res, cg_theo)
+    def test_calc_pion_cg_A1g(self):
+        tmp1 = np.zeros((3,))
+        tmp2 = np.asarray([0.,0.,1.])
+        res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "A1g")
+        cg_theo = np.ones((1,1), dtype=complex)/6.
+        self.assertEqual(res, cg_theo)
 
-    #def test_calc_pion_cg_A2(self):
-    #    tmp1 = np.zeros((3,))
-    #    tmp2 = np.asarray([0.,0.,1.])
-    #    res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "A2")
-    #    cg_theo = np.ones((1,1), dtype=complex)
-    #    self.assertEqual(res, cg_theo)
+    def test_calc_pion_cg_Ep1g(self):
+        tmp1 = np.zeros((3,))
+        tmp2 = np.asarray([0.,0.,1.])
+        res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "Ep1g")
+        cg_theo = np.ones((2,2),dtype=complex)
+        cg_theo[:,1] = -0.5+0.8660254j
+        self.assertEqual(res/res[0,0], cg_theo)
 
-    #def test_calc_pion_cg_E(self):
-    #    tmp1 = np.zeros((3,))
-    #    tmp2 = np.asarray([0.,0.,1.])
-    #    res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "Ep1")
-    #    cg_theo = np.asarray([[1., 0.], [-np.sqrt(3), 1.]], dtype=complex)
-    #    self.assertEqual(res/res[0,0], cg_theo)
-        #self.assertEqual(res/res[0,0], cg_theo, msg="might fail due to phase")
-        #self.assertEqual(res, cg_theo)
+    def test_calc_pion_cg_T1u(self):
+        tmp1 = np.zeros((3,))
+        tmp2 = np.asarray([0.,0.,1.])
+        res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "T1u")
+        cg_theo = np.zeros((3,3), dtype=complex)
+        cg_theo[1,0] = 1./np.sqrt(8)
+        cg_theo[1,2] = -1./np.sqrt(8)
+        self.assertEqual(res, cg_theo)
 
-    #def test_calc_pion_cg_T1(self):
-    #    tmp1 = np.zeros((3,))
-    #    tmp2 = np.asarray([0.,0.,1.])
-    #    res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "T1")
-    #    cg_theo = np.zeros((3,3), dtype=complex)
-    #    #self.assertEqual(res, cg_theo, msg="might fail due to phase")
-    #    self.assertEqual(res, cg_theo)
-    #    #self.assertEqual(res, cg_theo)
+    def test_calc_pion_cg_zero(self):
+        tmp = np.zeros((3,))
+        tmp1 = np.zeros((3,))
+        tmp1[2] = 1.
+        irnames = ["A1u", "A2g", "A2u", "E1g", "E1u", "E2g", "E2u",
+                "T1g", "T2g", "T2u", "Ep1u", "G1g", "G1u"]
+        for irn in irnames:
+            dim = 0
+            if irn[0] in ["A", "K"]:
+                dim = 1
+            elif irn[0] == "E":
+                dim = 2
+            elif irn[0] == "T":
+                dim = 3
+            elif irn[0] == "G":
+                dim = 4
+            else:
+                raise RuntimeError("cannot handle irrep %s" % irn)
+            res = self.gc.calc_pion_cg(tmp, tmp1, -tmp1, irn)
+            cg_theo = np.zeros((dim, dim), dtype=complex)
+            msg = "irrep %s:\nresult\n%r\n\nexpected:\n%r" % (irn, res, cg_theo)
+            self.assertEqual(res, cg_theo, msg=msg)
 
-    #def test_calc_pion_cg_T2(self):
-    #    tmp1 = np.zeros((3,))
-    #    tmp2 = np.asarray([0.,0.,1.])
-    #    res = self.gc.calc_pion_cg(tmp1, tmp2, -tmp2, "T2")
-    #    cg_theo = np.zeros((3,3), dtype=complex)
-    #    self.assertEqual(res, cg_theo)
-    #    #self.assertEqual(res, cg_theo, msg="might fail due to phase")
-    #    #self.assertEqual(res, cg_theo)
-
-    def test_get_pion_cg_A1(self):
-        res = self.gc.get_pion_cg("A1")
+    def test_get_pion_cg_A1g(self):
+        res = self.gc.get_pion_cg("A1g")
         res_theo = np.ones((6,1), dtype=complex)/np.sqrt(6)
         self.assertEqual(len(res), 3)
-        self.assertEqual(res[0], "A1")
+        self.assertEqual(res[0], "A1g")
         self.assertEqual(res[1], res_theo)
         # res[2] is already checked in test_momenta
 
-    def test_get_pion_cg_A2(self):
-        res = self.gc.get_pion_cg("A2")
-        res_theo = np.ones((6,1), dtype=complex)/np.sqrt(6)
-        self.assertEqual(len(res), 3)
-        self.assertEqual(res[0], "A2")
-        self.assertEqual(res[1], res_theo)
-        # res[2] is already checked in test_momenta
+    def test_get_pion_cg_zero(self):
+        irnames = ["A1u", "A2g", "A2u", "E1g", "E1u", "E2g", "E2u",
+                "T1g", "T2g", "T2u", "Ep1u", "G1g", "G1u"]
+        for irn in irnames:
+            res = self.gc.get_pion_cg(irn)
+            msg = "irrep %s failed" % irn
+            self.assertEqual(res[0], irn)
+            self.assertIsNone(res[1], msg=msg)
 
-    def test_get_pion_cg_A1_twice(self):
-        res1 = self.gc.get_pion_cg("A1")
-        res2 = self.gc.get_pion_cg("A1")
+    def test_get_pion_cg_A1g_twice(self):
+        res1 = self.gc.get_pion_cg("A1g")
+        res2 = self.gc.get_pion_cg("A1g")
         self.assertIs(res1[1], res2[1])
 
     def test_norm_cgs_1(self):
