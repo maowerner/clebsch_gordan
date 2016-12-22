@@ -55,25 +55,14 @@ class TOhCG(object):
             self.gamma1 = None
             self.gamma2 = None
         else:
-            irstr = "A1u" if p1 < 1e-6 else "A2g"
+            irstr = "A1u" if int(p1) in [0,3] else "A2u"
             self.gamma1 = self.gen_ind_reps(self.g1, irstr, self.coset1)
-            irstr = "A1u" if p2 < 1e-6 else "A2g"
+            irstr = "A1u" if int(p2) in [0,3] else "A2u"
             self.gamma2 = self.gen_ind_reps(self.g2, irstr, self.coset2)
         #print(self.gamma1[:5])
 
         self.irreps = []
         self.cgs = []
-
-        # choose mu1, mu2 and i1, i2, according to Dudek paper
-        # since A1 and A2 are 1D, set mu to 0
-        self.mu1 = 0
-        self.mu2 = 0
-        self.i1i2 = []
-        for m in self.momenta:
-            for ((m1, i1), (m2, i2)) in it.product(self.smomenta1, self.smomenta2):
-                if utils._eq(m1+m2-m):
-                    self.i1i2.append((m,i1,i2))
-                    break
 
     def gen_momenta(self):
         pm = 4 # maximum component in each direction
@@ -170,7 +159,7 @@ class TOhCG(object):
                 if np.all(t):
                     res1.append((p1, i))
                     break
-        for p2 in self.momenta1:
+        for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
                 t = self.check_coset(self.pref2, p2, c)
                 if np.all(t):
@@ -178,10 +167,11 @@ class TOhCG(object):
                     break
         self.smomenta1 = res1
         if len(self.smomenta1) != len(self.momenta1):
-            print("some vectors not sorted")
+            print("some vectors not sorted, momentum 1")
         self.smomenta2 = res2
         if len(self.smomenta2) != len(self.momenta2):
-            print("some vectors not sorted")
+            print("some vectors not sorted, momentum 2")
+            print(t)
 
     def check_coset(self, pref, p, coset):
         res = []
@@ -190,9 +180,7 @@ class TOhCG(object):
             quat = self.g0.elements[look]
             rvec = quat.rotation_matrix(True).dot(pref)
             c1 = utils._eq(rvec, p)
-            #c2 = utils._eq(rvec, -p)
-            c2 = False
-            if c1 or c2:
+            if c1:
                 res.append(True)
             else:
                 res.append(False)
@@ -200,20 +188,19 @@ class TOhCG(object):
 
     def check_all_cosets(self, p, p1, p2):
         j1, j2 = None, None
-        i1, i2 = None, None
         for m, j in self.smomenta1:
             if utils._eq(p1,m):
                 j1 = j
                 break
+        if j1 is None:
+            print("j1 is None")
         for m, j in self.smomenta2:
             if utils._eq(p2,m):
                 j2 = j
                 break
-        for m, k1, k2 in self.i1i2:
-            if utils._eq(p, m):
-                i1, i2 = k1, k2
-                break
-        return j1, j2, i1, i2
+        if j2 is None:
+            print("j2 is None")
+        return j1, j2
 
     def calc_pion_cg(self, p, p1, p2, irname):
         """Calculate the elements of the Clebsch-Gordan matrix.
@@ -224,23 +211,41 @@ class TOhCG(object):
         ir = self.g.irreps[self.g.irrepsname.index(irname)]
         # j1 and j2 are the conjugacy classes containing
         # the given momenta p1 and p2
-        j1, j2, i1, i2 = self.check_all_cosets(p, p1, p2)
-        cg = np.zeros((ir.dim,ir.dim), dtype=complex)
-        for ind, r in enumerate(self.g.lelements):
-            # representation matrix for element
-            rep = ir.mx[ind]
-            # look up the index of the group element in the
-            # g0 group
-            look = self.g0.lelements.index(r)
-            # hard coded for pi-pi scattering
-            g1 = self.gamma1[look,j1, i1]
-            if utils._eq(g1):
-                continue
-            g2 = self.gamma2[look,j2, i2]
-            if utils._eq(g2):
-                continue
-            cg += rep.conj()*g1*g2
-        cg *= float(ir.dim)/self.g.order
+        j1, j2 = self.check_all_cosets(p, p1, p2)
+        dim = ir.dim
+        dim1 = self.gamma1.shape[1]
+        dim2 = self.gamma2.shape[1]
+        tmp = []
+        cg = np.zeros((dim,), dtype=complex)
+        for mu, mu1, mu2 in it.product(range(dim), range(dim1), range(dim2)):
+            #print("tmp array")
+            #print(tmp)
+            # reset vector
+            cg.fill(0.)
+            # calculate Clebsch-Gordan coefficients
+            for ind, r in enumerate(self.g.lelements):
+                # representation matrix for element
+                rep = ir.mx[ind]
+                # look up the index of the group element in the
+                # g0 group
+                look = self.g0.lelements.index(r)
+                # hard coded for pi-pi scattering
+                g1 = self.gamma1[look,j1, mu1]
+                if utils._eq(g1):
+                    continue
+                g2 = self.gamma2[look,j2, mu2]
+                if utils._eq(g2):
+                    continue
+                cg += rep[:,mu].conj()*g1*g2
+            cg *= float(dim)/self.g.order
+            # save if not zero
+            tmp.append(cg.copy())
+        cg = np.asarray(tmp)
+        if cg.dtype == np.ndarray:
+            print("cg debug")
+            print(cg)
+        if cg.size < 1:
+            cg = None
         return cg
     
     def get_pion_cg(self, irname):
@@ -258,7 +263,7 @@ class TOhCG(object):
             result.append(res)
         result = np.asarray(result)
         # check if all coefficients are zero
-        if utils._eq(result):
+        if result.size < 1 or utils._eq(result):
             cgs = None
         else:
             # orthonormalize the basis
@@ -268,8 +273,12 @@ class TOhCG(object):
         return irname, cgs, self.allmomenta
 
     def _norm_cgs(self, data):
+        if data.ndim > 1:
+            _data = data
+        else:
+            _data = data.reshape(-1,1)
         # prepare result array
-        res = np.zeros(data.shape[:-1], dtype=complex)
+        res = np.zeros(_data.shape, dtype=complex)
         # sort by final momentum, so that all final momenta are
         # normalized seperately
         ind = [[] for x in self.momenta]
@@ -278,16 +287,15 @@ class TOhCG(object):
                 if np.array_equal(m[0], fm):
                     ind[j].append(i)
                     break
+        print(ind)
         # norm the data
         # set starting variables
-        mup = 0
-        for i in range(data.shape[1]):
+        for i in range(_data.shape[1]):
             for j in ind:
-                tmp = data[j,i,mup]
+                tmp = _data[j,i]
                 if np.any(tmp):
                     norm = np.sqrt(np.vdot(tmp, tmp))
                     res[j,i] = tmp/norm
-            mup += 1
         return res
 
 def display(data, mom, empty=None):

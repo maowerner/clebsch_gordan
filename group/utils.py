@@ -45,3 +45,20 @@ def check_array(d1, d2, msg=None):
 
 def binomial(n, k):
     return scipy.misc.comb(n, k)
+
+def gram_schmidt(v1, v2, prec=1e-6):
+    """returns the part of v1 perpendicular to v2"""
+    _v1 = np.asarray(v1)
+    _v2 = np.asarray(v2)
+    n1 = np.vdot(_v1, _v2)
+    if np.abs(n1) < prec:
+        n = np.sqrt(np.vdot(_v1, _v1))
+        if np.abs(n) > prec:
+            _v1 /= n
+        return _v1
+    n2 = np.sqrt(np.vdot(_v2, _v2))
+    res = _v1 - n1/n2*_v2
+    n = np.sqrt(np.vdot(res, res))
+    if np.abs(n) > prec:
+        res /= n
+    return res

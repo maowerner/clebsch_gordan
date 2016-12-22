@@ -72,5 +72,33 @@ class TestEq(unittest.TestCase):
         vec1 = np.ones((3,), dtype=complex)*0.5 + 2.j
         self.assertFalse(ut._eq(vec, vec1))
 
+class TestGramSchmidt(unittest.TestCase):
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, ut.check_array)
+
+    def test_equal_vectors(self):
+        vec = np.ones((3,))/np.sqrt(3.)
+        vec0 = np.zeros((3,))
+        res = ut.gram_schmidt(vec, vec)
+        self.assertEqual(res, vec0)
+
+    def test_perpendicular_vectors(self):
+        vec1 = np.asarray([1., 0., 0.])
+        vec2 = np.asarray([0., 1., 0.])
+        res = ut.gram_schmidt(vec1, vec2)
+        self.assertEqual(res, vec1)
+
+    def test_zero_projection_vector(self):
+        vec0 = np.zeros((3,))
+        vec1 = np.ones((3,))
+        res = ut.gram_schmidt(vec1, vec0)
+        self.assertEqual(res, vec1)
+
+    def test_zero_vector(self):
+        vec0 = np.zeros((3,))
+        vec1 = np.ones((3,))
+        res = ut.gram_schmidt(vec0, vec1)
+        self.assertEqual(res, vec0)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
