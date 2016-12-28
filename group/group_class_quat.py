@@ -237,7 +237,7 @@ class TOh(object):
         t2 = utils._eq(check2, tmp)
         return t1, t2
 
-    def characters_of_SU2(self, j):
+    def characters_of_SU2(self, j, useinv=True):
         """Character of SU(2) with multiplicity [j] = 2*j+1 for
         all conjugacy classes.
 
@@ -264,24 +264,29 @@ class TOh(object):
             for k in range(1, n+1):
                 _char += np.cos(k * omegas)
         _char *= 2.
-        if self.withinversion:
+        if useinv:
             _char *= _inv
         return _char
 
-    def multiplicity_of_SU2(self, j):
+    def multiplicity_of_SU2(self, j, useinv=True):
         """Multiplicites of irreps for SU(2) with multiplicity [j] = 2*j+1.
 
         Parameter
         ---------
         j : int
             The multiplicity of the angular momentum.
+        useinv : bool
+            Use the inversion flag of the representations.
 
         Returns
         -------
         multi : ndarray
-            The multiplicities.
+            The multiplicities of the irreps for the SU(2) representation.
         """
-        pass
+        _char = self.characters_of_SU2(j, useinv=useinv)
+        multi = self.tchar.dot(_char*self.cdim)
+        multi = np.real_if_close(np.rint(multi/float(self.order)))
+        return multi
 
     def print_mult_table(self):
         print("multiplication table\n")

@@ -50,7 +50,7 @@ def gram_schmidt(v1, v2, prec=1e-6):
     """returns the part of v1 perpendicular to v2"""
     _v1 = np.asarray(v1)
     _v2 = np.asarray(v2)
-    n1 = np.vdot(_v1, _v2)
+    n1 = np.vdot(_v2, _v1)
     if np.abs(n1) < prec:
         n = np.sqrt(np.vdot(_v1, _v1))
         if np.abs(n) > prec:

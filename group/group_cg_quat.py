@@ -37,16 +37,16 @@ class TOhCG(object):
             self.g2 = groups[p2]
 
         # get the cosets, always in the maximal group (2O here)
-        # is set to None if at least one group is None
-        self.coset1 = self.gen_coset(self.g1)
-        self.coset2 = self.gen_coset(self.g2)
+        # returns None if groups is None
+        self.coset1 = self.gen_coset(groups, self.p1)
+        self.coset2 = self.gen_coset(groups, self.p2)
         #print(self.coset1)
         #print(self.coset2)
 
         # generate the allowed momentum combinations and sort them into cosets
         self.gen_momenta()
         if groups is not None:
-            self.sort_momenta()
+            self.sort_momenta(groups[0])
 
         # calculate induced rep gamma
         # here for p1 and p2 the A1(A2) irreps are hard-coded
@@ -56,13 +56,61 @@ class TOhCG(object):
             self.gamma2 = None
         else:
             irstr = "A1u" if int(p1) in [0,3] else "A2u"
-            self.gamma1 = self.gen_ind_reps(self.g1, irstr, self.coset1)
+            #irstr = "E1g"
+            self.gamma1 = self.gen_ind_reps(groups, p1, irstr, self.coset1)
             irstr = "A1u" if int(p2) in [0,3] else "A2u"
-            self.gamma2 = self.gen_ind_reps(self.g2, irstr, self.coset2)
+            #irstr = "E1g"
+            self.gamma2 = self.gen_ind_reps(groups, p2, irstr, self.coset2)
         #print(self.gamma1[:5])
+        #print("traces of induced representation")
+        #print(self.spur1)
+        #print(self.spur2)
+
+        #self.subduce()
 
         self.irreps = []
         self.cgs = []
+
+    def gen_coset(self, groups, p):
+        """Cosets contain the numbers of the rotation objects
+        """
+        if groups is None:
+            return None
+        g0 = groups[0]
+        g1 = groups[p]
+        n = int(g0.order/g1.order)
+        if n == 0:
+            raise RuntimeError("number of cosets is 0!")
+        coset = np.zeros((n, g1.order), dtype=int)
+        l = g0.order
+        l1 = g1.order
+        # set the subgroup as first coset
+        count = 0
+        for r in range(l1):
+            elem = g1.lelements[r]
+            if elem in g0.lelements:
+                coset[0, count] = elem
+                count += 1
+        # calc the cosets
+        uniq = np.unique(coset)
+        cnum = 1 # coset number
+        for elem in g0.lelements:
+            if elem in uniq:
+                continue
+            count = 0
+            for elem1 in g1.lelements:
+                if elem1 in g0.lelements:
+                    look = g0.lelements.index(elem1)
+                    el = g0.tmult_global[elem, look]
+                    coset[cnum, count] = el
+                    count += 1
+            cnum += 1
+            uniq = np.unique(coset)
+        if len(uniq) != g0.order:
+            print("some elements got lost!")
+        if cnum != n:
+            print("some coset not found!")
+        return coset
 
     def gen_momenta(self):
         pm = 4 # maximum component in each direction
@@ -84,84 +132,37 @@ class TOhCG(object):
                     if utils._eq(p1+p2-p):
                         self.allmomenta.append((p, p1, p2))
 
-    def gen_coset(self, g1):
-        """Cosets contain the numbers of the rotation objects
-        """
-        if self.g0 is None or g1 is None:
-            return None
-        n = int(self.g0.order/g1.order)
-        if n == 0:
-            raise RuntimeError("number of cosets is 0!")
-        coset = np.zeros((n, g1.order), dtype=int)
-        l = self.g0.order
-        l1 = g1.order
-        # set the subgroup as first coset
-        count = 0
-        for r in range(l1):
-            elem = g1.lelements[r]
-            if elem in self.g0.lelements:
-                coset[0, count] = elem
-                count += 1
-        # calc the cosets
-        uniq = np.unique(coset)
-        cnum = 1 # coset number
-        for elem in self.g0.lelements:
-            if elem in uniq:
-                continue
-            count = 0
-            for elem1 in g1.lelements:
-                if elem1 in self.g0.lelements:
-                    look = self.g0.lelements.index(elem1)
-                    #el = self.g0.tmult_global[look, elem]
-                    el = self.g0.tmult_global[elem, look]
-                    coset[cnum, count] = el
-                    count += 1
-            cnum += 1
-            uniq = np.unique(coset)
-        if len(uniq) != self.g0.order:
-            print("some elements got lost!")
-        if cnum != n:
-            print("some coset not found!")
-        return coset
-
-    def gen_ind_reps(self, g1, irstr, coset):
-        ir = g1.irreps[g1.irrepsname.index(irstr)]
-        dim = ir.dim
-        ndim = (self.g0.order, coset.shape[0]*dim, coset.shape[0]*dim)
-        gamma = np.zeros(ndim, dtype=complex)
-        for ind, r in enumerate(self.g0.lelements):
-            for cj, rj in enumerate(coset[:,0]):
-                rrj = self.g0.tmult[r, rj]
-                indj = slice(cj*dim, (cj+1)*dim)
-                for ci, ri in enumerate(coset[:,0]):
-                    riinv = self.g0.linv[ri]
-                    riinvrrj = self.g0.tmult[riinv, rrj]
-                    indi = slice(ci*dim, (ci+1)*dim)
-                    if riinvrrj not in coset[0]:
-                        continue
-                    elem = g1.lelements.index(riinvrrj)
-                    gamma[ind, indi, indj] = ir.mx[elem]
-        return gamma
-
-    def sort_momenta(self):
+    def sort_momenta(self, g0):
         # check if cosets exists
         if self.coset1 is None or self.coset2 is None:
             self.smomenta1 = None
             self.smomenta2 = None
             return
+        def check_coset(g0, pref, p, coset):
+            res = []
+            for elem in coset:
+                look = g0.lelements.index(elem)
+                quat = g0.elements[look]
+                rvec = quat.rotation_matrix(True).dot(pref)
+                c1 = utils._eq(rvec, p)
+                if c1:
+                    res.append(True)
+                else:
+                    res.append(False)
+            return res
         # search for conjugacy class so that
         # R*p_ref = p
         res1 = []
         res2 = []
         for p1 in self.momenta1:
             for i,c in enumerate(self.coset1):
-                t = self.check_coset(self.pref1, p1, c)
+                t = check_coset(g0, self.pref1, p1, c)
                 if np.all(t):
                     res1.append((p1, i))
                     break
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
-                t = self.check_coset(self.pref2, p2, c)
+                t = check_coset(g0, self.pref2, p2, c)
                 if np.all(t):
                     res2.append((p2, i))
                     break
@@ -173,18 +174,27 @@ class TOhCG(object):
             print("some vectors not sorted, momentum 2")
             print(t)
 
-    def check_coset(self, pref, p, coset):
-        res = []
-        for elem in coset:
-            look = self.g0.lelements.index(elem)
-            quat = self.g0.elements[look]
-            rvec = quat.rotation_matrix(True).dot(pref)
-            c1 = utils._eq(rvec, p)
-            if c1:
-                res.append(True)
-            else:
-                res.append(False)
-        return res
+    def gen_ind_reps(self, groups, p, irstr, coset):
+        g0 = groups[0]
+        g1 = groups[p]
+        ir = g1.irreps[g1.irrepsname.index(irstr)]
+        dim = ir.dim
+        ndim = (g0.order, coset.shape[0]*dim, coset.shape[0]*dim)
+        gamma = np.zeros(ndim, dtype=complex)
+        for ind, r in enumerate(g0.lelements):
+            for cj, rj in enumerate(coset[:,0]):
+                rrj = g0.tmult[r, rj]
+                indj = slice(cj*dim, (cj+1)*dim)
+                for ci, ri in enumerate(coset[:,0]):
+                    riinv = g0.linv[ri]
+                    riinvrrj = g0.tmult[riinv, rrj]
+                    indi = slice(ci*dim, (ci+1)*dim)
+                    if riinvrrj not in coset[0]:
+                        continue
+                    elem = g1.lelements.index(riinvrrj)
+                    gamma[ind, indi, indj] = ir.mx[elem]
+        return gamma
+
 
     def check_all_cosets(self, p, p1, p2):
         j1, j2 = None, None
@@ -201,6 +211,111 @@ class TOhCG(object):
         if j2 is None:
             print("j2 is None")
         return j1, j2
+
+    def multiplicities(self):
+        multi = np.zeros((self.g.nclasses,), dtype=complex)
+        for i in range(self.g.order):
+            chars = np.asarray([np.trace(ir.mx[i]).conj() for ir in self.g.irreps])
+            look = self.g.lelements[i]
+            chars *= np.trace(self.gamma1[look])
+            chars *= np.trace(self.gamma2[look])
+            multi += chars
+        #multi = np.real_if_close(np.rint(multi/self.g.order))
+        multi = np.real_if_close(multi/self.g.order)
+        return multi
+
+    def check_index(self, mu1, mu2, dim1, dim2):
+        i1 = mu1 % self.coset1.shape[0]
+        p1 = None
+        for m, j in self.smomenta1:
+            if j == i1:
+                p1 = m
+                break
+        if p1 is None:
+            raise RuntimeError("Momentum 1 not found")
+
+        i2 = mu2 % self.coset2.shape[0]
+        p2 = None
+        for m, j in self.smomenta2:
+            if j == i2:
+                p2 = m
+                break
+        if p2 is None:
+            raise RuntimeError("Momentum 2 not found")
+        
+        p12 = p1+p2
+        for m in self.momenta:
+            if utils._eq(p12, m):
+                return True
+        return False
+
+    def calc_cg_new(self):
+        #multi = self.multiplicities()
+        multi = np.zeros((self.g.nclasses,), dtype=int)
+        dim1 = self.gamma1.shape[1]
+        dim2 = self.gamma2.shape[1]
+        #print("dim1 = %d, dim2 = %d" % (dim1, dim2))
+        dim12 = dim1*dim2
+        coeff = np.zeros((dim12,), dtype=complex)
+        self.cgnames = []
+        self.cgind = []
+        self.cg = []
+        lcoeffs = []
+        lind = []
+        for indir, ir in enumerate(self.g.irreps):
+            #if np.abs(multi[indir]) < self.prec:
+            #    continue
+            dim = ir.dim
+            dimall = dim*dim1*dim2
+            ncg = np.zeros((dim,), dtype=int)
+            # loop over all column index combinations
+            for mup, mu1, mu2 in it.product(range(dim), range(dim1), range(dim2)):
+                if not self.check_index(mu1, mu2, dim1, dim2):
+                    continue
+                # loop over the row of the final irrep
+                for mu in range(dim):
+                    indmu = dim12*mu
+                    coeff.fill(0.)
+                    # loop over all combinations of rows of the induced
+                    # representations
+                    for mu1p, mu2p in it.product(range(dim1), range(dim2)):
+                        if not self.check_index(mu1p, mu2p, dim1, dim2):
+                            continue
+                        ind12 = dim2 * mu1p + mu2p
+                        co = 0.j
+                        for i in range(self.g.order):
+                            tmp = ir.mx[i][mu, mup].conj()
+                            look = self.g.lelements[i]
+                            tmp *= self.gamma1[look, mu1p, mu1]
+                            tmp *= self.gamma2[look, mu2p, mu2]
+                            co += tmp
+                        coeff[ind12] = co*dim
+                    coeff /= self.g.order
+                    ncoeff = np.sqrt(np.vdot(coeff, coeff))
+                    # if norm is 0, try next combination of mu', mu1, mu2
+                    if ncoeff < self.prec:
+                        continue
+                    else:
+                        coeff /= ncoeff
+                    for vec in lcoeffs:
+                        coeff = utils.gram_schmidt(coeff, vec, prec=self.prec)
+                        ncoeff = np.vdot(coeff, coeff)
+                        # if zero vector, try next combination of mu', mu1, mu2
+                        if ncoeff < self.prec:
+                            break
+                    if ncoeff > self.prec:
+                        lcoeffs.append(coeff.copy())
+                        lind.append((mu, mu1p, mu2p))
+                        ncg[mu] += 1
+                        multi[indir] += 1
+            #for d in range(dim):
+            #    if ncg[d] != multi[indir] and multi[indir] != 0:
+            #        print("not the correct number of vectors found for irrep %s" % ir.name)
+            #        print("found %d of %d" % (ncg[d], multi[indir]))
+            self.cgnames.append((ir.name, multi[indir]/dim))
+        self.cg.append(np.asarray(lcoeffs).copy())
+        self.cgind.append(np.asarray(lind).copy())
+
 
     def calc_pion_cg(self, p, p1, p2, irname):
         """Calculate the elements of the Clebsch-Gordan matrix.
