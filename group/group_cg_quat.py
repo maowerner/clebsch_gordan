@@ -45,8 +45,6 @@ class TOhCG(object):
 
         # generate the allowed momentum combinations and sort them into cosets
         self.gen_momenta()
-        if groups is not None:
-            self.sort_momenta(groups[0])
 
         # calculate induced rep gamma
         # here for p1 and p2 the A1(A2) irreps are hard-coded
@@ -54,22 +52,27 @@ class TOhCG(object):
         if groups is None:
             self.gamma1 = None
             self.gamma2 = None
+            self.dim1 = 0
+            self.dim2 = 0
         else:
             irstr = "A1u" if int(p1) in [0,3] else "A2u"
             #irstr = "E1g"
             self.gamma1 = self.gen_ind_reps(groups, p1, irstr, self.coset1)
+            self.dim1 = 1
             irstr = "A1u" if int(p2) in [0,3] else "A2u"
             #irstr = "E1g"
             self.gamma2 = self.gen_ind_reps(groups, p2, irstr, self.coset2)
+            self.dim2 = 1
+            self.sort_momenta(groups[0])
         #print(self.gamma1[:5])
         #print("traces of induced representation")
         #print(self.spur1)
         #print(self.spur2)
 
-        #self.subduce()
-
         self.irreps = []
         self.cgs = []
+
+        self.calc_cg_new()
 
     def gen_coset(self, groups, p):
         """Cosets contain the numbers of the rotation objects
@@ -124,13 +127,6 @@ class TOhCG(object):
         self.momenta1 = [y for y in it.ifilter(lambda x: _abs1(x,self.p1), lp3)]
         self.momenta2 = [y for y in it.ifilter(lambda x: _abs1(x,self.p2), lp3)]
         
-        self.allmomenta = []
-        # only save allowed momenta combinations
-        for p in self.momenta:
-            for p1 in self.momenta1:
-                for p2 in self.momenta2:
-                    if utils._eq(p1+p2-p):
-                        self.allmomenta.append((p, p1, p2))
 
     def sort_momenta(self, g0):
         # check if cosets exists
@@ -172,7 +168,20 @@ class TOhCG(object):
         self.smomenta2 = res2
         if len(self.smomenta2) != len(self.momenta2):
             print("some vectors not sorted, momentum 2")
-            print(t)
+        # generate lists with all allowed momenta combinations and their
+        # combined coset+dim indices
+        dimcomb = [x for x in it.product(range(self.dim1), range(self.dim2))]
+        self.allmomenta = []
+        self.indices = []
+        for p in self.momenta:
+            for p1 in self.momenta1:
+                for p2 in self.momenta2:
+                    if utils._eq(p1+p2-p):
+                        self.allmomenta.append((p, p1, p2))
+                        j1, j2 = self.check_all_cosets(p, p1, p2)
+                        for x in dimcomb:
+                            self.indices.append((j1*self.dim1+x[0], j2*self.dim2+x[1]))
+
 
     def gen_ind_reps(self, groups, p, irstr, coset):
         g0 = groups[0]
@@ -217,15 +226,22 @@ class TOhCG(object):
         for i in range(self.g.order):
             chars = np.asarray([np.trace(ir.mx[i]).conj() for ir in self.g.irreps])
             look = self.g.lelements[i]
-            chars *= np.trace(self.gamma1[look])
-            chars *= np.trace(self.gamma2[look])
+            tr1 = tr2 = 0.
+            for i1, i2 in self.indices:
+                if i1 != i2:
+                    continue
+                tr1 += self.gamma1[look,i1,i1]
+                tr2 += self.gamma2[look,i2,i2]
+            chars *= tr1*tr2
+            #chars *= np.trace(self.gamma1[look])
+            #chars *= np.trace(self.gamma2[look])
             multi += chars
         #multi = np.real_if_close(np.rint(multi/self.g.order))
         multi = np.real_if_close(multi/self.g.order)
         return multi
 
-    def check_index(self, mu1, mu2, dim1, dim2):
-        i1 = mu1 % self.coset1.shape[0]
+    def check_index(self, mu1, mu2):
+        i1 = mu1 // self.dim1
         p1 = None
         for m, j in self.smomenta1:
             if j == i1:
@@ -234,7 +250,7 @@ class TOhCG(object):
         if p1 is None:
             raise RuntimeError("Momentum 1 not found")
 
-        i2 = mu2 % self.coset2.shape[0]
+        i2 = mu2 // self.dim2
         p2 = None
         for m, j in self.smomenta2:
             if j == i2:
@@ -250,36 +266,31 @@ class TOhCG(object):
         return False
 
     def calc_cg_new(self):
-        #multi = self.multiplicities()
         multi = np.zeros((self.g.nclasses,), dtype=int)
         dim1 = self.gamma1.shape[1]
         dim2 = self.gamma2.shape[1]
-        #print("dim1 = %d, dim2 = %d" % (dim1, dim2))
         dim12 = dim1*dim2
-        coeff = np.zeros((dim12,), dtype=complex)
+        coeff = np.zeros((len(self.indices),), dtype=complex)
         self.cgnames = []
         self.cgind = []
         self.cg = []
-        lcoeffs = []
         lind = []
         for indir, ir in enumerate(self.g.irreps):
-            #if np.abs(multi[indir]) < self.prec:
-            #    continue
+            lcoeffs = []
             dim = ir.dim
-            dimall = dim*dim1*dim2
-            ncg = np.zeros((dim,), dtype=int)
-            # loop over all column index combinations
-            for mup, mu1, mu2 in it.product(range(dim), range(dim1), range(dim2)):
-                if not self.check_index(mu1, mu2, dim1, dim2):
+            # loop over all column index combinations that conserve the COM momentum
+            for mup, (mu1, mu2) in it.product(range(dim), self.indices):
+            #for mup, mu1, mu2 in it.product(range(dim), range(dim1), range(dim2)):
+                if not self.check_index(mu1, mu2):
                     continue
                 # loop over the row of the final irrep
                 for mu in range(dim):
-                    indmu = dim12*mu
                     coeff.fill(0.)
                     # loop over all combinations of rows of the induced
                     # representations
-                    for mu1p, mu2p in it.product(range(dim1), range(dim2)):
-                        if not self.check_index(mu1p, mu2p, dim1, dim2):
+                    for ind1, (mu1p, mu2p) in enumerate(self.indices):
+                    #for mu1p, mu2p in it.product(range(dim1), range(dim2)):
+                        if not self.check_index(mu1p, mu2p):
                             continue
                         ind12 = dim2 * mu1p + mu2p
                         co = 0.j
@@ -289,7 +300,8 @@ class TOhCG(object):
                             tmp *= self.gamma1[look, mu1p, mu1]
                             tmp *= self.gamma2[look, mu2p, mu2]
                             co += tmp
-                        coeff[ind12] = co*dim
+                        coeff[ind1] = co*dim
+                        #coeff[ind12] = co*dim
                     coeff /= self.g.order
                     ncoeff = np.sqrt(np.vdot(coeff, coeff))
                     # if norm is 0, try next combination of mu', mu1, mu2
@@ -297,24 +309,38 @@ class TOhCG(object):
                         continue
                     else:
                         coeff /= ncoeff
+                    # orthogonalize w.r.t. already found vectors of same irrep
                     for vec in lcoeffs:
                         coeff = utils.gram_schmidt(coeff, vec, prec=self.prec)
-                        ncoeff = np.vdot(coeff, coeff)
+                        ncoeff = np.sqrt(np.vdot(coeff, coeff))
                         # if zero vector, try next combination of mu', mu1, mu2
+                        if ncoeff < self.prec:
+                            break
+                    if ncoeff < self.prec:
+                        continue
+                    # orthogonalize w.r.t. already found vectors of other irreps
+                    for lcg in self.cg:
+                        #print("checking coeff against:")
+                        #print(lcg)
+                        for vec in lcg:
+                            coeff = utils.gram_schmidt(coeff, vec, prec=self.prec)
+                            ncoeff = np.sqrt(np.vdot(coeff, coeff))
+                            # if zero vector, try next combination of mu', mu1, mu2
+                            if ncoeff < self.prec:
+                                break
                         if ncoeff < self.prec:
                             break
                     if ncoeff > self.prec:
                         lcoeffs.append(coeff.copy())
-                        lind.append((mu, mu1p, mu2p))
-                        ncg[mu] += 1
+                        lind.append((mu, mup, mu1, mu2))
                         multi[indir] += 1
-            #for d in range(dim):
-            #    if ncg[d] != multi[indir] and multi[indir] != 0:
-            #        print("not the correct number of vectors found for irrep %s" % ir.name)
-            #        print("found %d of %d" % (ncg[d], multi[indir]))
-            self.cgnames.append((ir.name, multi[indir]/dim))
-        self.cg.append(np.asarray(lcoeffs).copy())
-        self.cgind.append(np.asarray(lind).copy())
+            if multi[indir] > 0:
+                print("%s: %d times" % (ir.name, multi[indir]/dim))
+                self.cgnames.append((ir.name, multi[indir]/dim, dim))
+                self.cg.append(np.asarray(lcoeffs).copy())
+                #print("appended coeffs:")
+                #print(self.cg[-1])
+                self.cgind.append(np.asarray(lind).copy())
 
 
     def calc_pion_cg(self, p, p1, p2, irname):
@@ -413,26 +439,45 @@ class TOhCG(object):
                     res[j,i] = tmp/norm
         return res
 
-def display(data, mom, empty=None):
-    def _d1(data):
-        tmp = ["%2d" % x for x in data]
-        tmp = ",".join(tmp)
-        tmp = "".join(("(", tmp, ")"))
-        return tmp
-    def _d2(data):
-        tmp = ["%+.3f%+.3fj" % (x.real, x.imag) for x in data]
-        tmp = ", ".join(tmp)
-        tmp = "".join(("[", tmp, "]"))
-        return tmp
-    count = 0
-    for d, m in zip(data, mom):
-        print("% 11s = %11s + %11s => %s" % (\
-                _d1(m[0]), _d1(m[1]), _d1(m[2]), _d2(d)))
-        if empty is not None:
-            count += 1
-            if count == empty:
-                count = 0
-                print("")
+    def display(self, emptyline=None):
+        def tostring(data):
+            tmp = ["%+.3f%+.3fj" % (x.real, x.imag) for x in data]
+            tmp = ",".join(tmp)
+            tmp = "".join(("(", tmp, ")"))
+            return tmp
+        def momtostring(data):
+            tmp = []
+            for d in data:
+                tmp.append("[%+d,%+d,%+d]" % (d[0], d[1], d[2]))
+            tmpstr = "%s x %s -> %s" % (tmp[1], tmp[2], tmp[0])
+            return tmpstr
+
+        count = 0
+        dim1 = self.gamma1.shape[1]
+        dim2 = self.gamma2.shape[1]
+        # loop over irreps
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            if multi < 1:
+                continue
+            print(" %s ".center(20,"*") % name)
+            # loop over multiplicities
+            for m in range(multi):
+                print("multiplicity %d" % m)
+                select = slice(m*dim, (m+1)*dim)
+                # loop over momenta
+                print("full vector")
+                print(self.cg[i][select])
+                for ind, (p, p1, p2) in enumerate(self.allmomenta):
+                    #i1, i2 = self.check_all_cosets(p, p1, p2)
+                    #ind = i1*dim2 + i2
+                    data = self.cg[i][select,ind]
+                    tmpstr = "%s: %s" % (momtostring([p,p1,p2]), tostring(data))
+                    print(tmpstr)
+                    if emptyline is not None:
+                        count += 1
+                        if count == emptyline:
+                            print("")
+                            count = 0
 
 if __name__ == "__main__":
     print("for checks execute the test script")

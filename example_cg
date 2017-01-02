@@ -20,17 +20,19 @@ def main():
         print(g.irrepsname)
 
     # calc coefficients
-    print(" CMF ".center(40, "*"))
+    print(" CMF ".center(40, "="))
     irnames = groups[0].irrepsname
     for p in range(p2max):
+        print(" %d x %d -> 0 ".center(40, "+") % (p, p))
         cgs = group.TOhCG(0, p, p, groups)
-        for ir in irnames:
-            a, b, c = cgs.get_pion_cg(ir)
-            if b is not None:
-                print(ir)
-                group.display(b, c)
+        cgs.display()
+        #for ir in irnames:
+        #    a, b, c = cgs.get_pion_cg(ir)
+        #    if b is not None:
+        #        print(ir)
+        #        group.display(b, c)
 
-    print(" MF1 ".center(40, "*"))
+    print(" MF1 ".center(40, "="))
     irnames = groups[1].irrepsname
     for i, j in it.product(range(p2max), repeat=2):
         if j-i != 1:
@@ -39,13 +41,14 @@ def main():
             empty = 3
         else:
             empty = 4
+        print(" %d x %d -> 1 ".center(40, "+") % (i, j))
         cgs = group.TOhCG(1, i, j, groups)
-        print("%d x %d -> 1" % (i, j))
-        for ir in irnames:
-            a, b, c = cgs.get_pion_cg(ir)
-            if b is not None:
-                print(ir)
-                group.display(b, c, empty=empty)
+        cgs.display(emptyline = empty)
+        #for ir in irnames:
+        #    a, b, c = cgs.get_pion_cg(ir)
+        #    if b is not None:
+        #        print(ir)
+        #        group.display(b, c, empty=empty)
 
 if __name__ == "__main__":
     try:
