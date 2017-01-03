@@ -73,6 +73,7 @@ class TOhCG(object):
         self.cgs = []
 
         self.calc_cg_new()
+        self.check_cg()
 
     def gen_coset(self, groups, p):
         """Cosets contain the numbers of the rotation objects
@@ -204,7 +205,6 @@ class TOhCG(object):
                     gamma[ind, indi, indj] = ir.mx[elem]
         return gamma
 
-
     def check_all_cosets(self, p, p1, p2):
         j1, j2 = None, None
         for m, j in self.smomenta1:
@@ -281,8 +281,8 @@ class TOhCG(object):
             # loop over all column index combinations that conserve the COM momentum
             for mup, (mu1, mu2) in it.product(range(dim), self.indices):
             #for mup, mu1, mu2 in it.product(range(dim), range(dim1), range(dim2)):
-                if not self.check_index(mu1, mu2):
-                    continue
+                #if not self.check_index(mu1, mu2):
+                #    continue
                 # loop over the row of the final irrep
                 for mu in range(dim):
                     coeff.fill(0.)
@@ -290,9 +290,9 @@ class TOhCG(object):
                     # representations
                     for ind1, (mu1p, mu2p) in enumerate(self.indices):
                     #for mu1p, mu2p in it.product(range(dim1), range(dim2)):
-                        if not self.check_index(mu1p, mu2p):
-                            continue
-                        ind12 = dim2 * mu1p + mu2p
+                        #if not self.check_index(mu1p, mu2p):
+                        #    continue
+                        #ind12 = dim2 * mu1p + mu2p
                         co = 0.j
                         for i in range(self.g.order):
                             tmp = ir.mx[i][mu, mup].conj()
@@ -342,6 +342,33 @@ class TOhCG(object):
                 #print(self.cg[-1])
                 self.cgind.append(np.asarray(lind).copy())
 
+    def check_cg(self):
+        """Rows of the Clebsch-Gordan coefficients are orthonormal by construction.
+        This routine checks the columns of the Clebsch-Gordan coefficients."""
+        allcgs = []
+        for lcg in self.cg:
+            for vec in lcg:
+                allcgs.append(vec)
+        allcgs = np.asarray(allcgs)
+        #print("test cgs, shape:")
+        #print(allcgs.shape)
+        ortho = True
+        norm = True
+        for i, j in it.combinations(range(allcgs.shape[1]), 2):
+            test = np.sqrt(np.vdot(allcgs[:,i], allcgs[:,j]))
+            if test > self.prec:
+                #print("columns %d and %d not orthogonal" % (i, j))
+                ortho = False
+        for i in range(allcgs.shape[1]):
+            test = np.sqrt(np.vdot(allcgs[:,i], allcgs[:,i]))
+            if np.abs(test-1.) > self.prec:
+                #print("columns %d not normalized" % (i))
+                norm = False
+        if ortho is False:
+            print("Some clebsch-gordan vector not orthogonalized.")
+        if norm is False:
+            print("Some clebsch-gordan vector not normalized.")
+
     def display(self, emptyline=None):
         def tostring(data):
             tmp = ["%+.3f%+.3fj" % (x.real, x.imag) for x in data]
@@ -368,8 +395,8 @@ class TOhCG(object):
                 print("multiplicity %d" % m)
                 select = slice(m*dim, (m+1)*dim)
                 # loop over momenta
-                print("full vector")
-                print(self.cg[i][select])
+                #print("full vector")
+                #print(self.cg[i][select])
                 for ind, (p, p1, p2) in enumerate(self.allmomenta):
                     #i1, i2 = self.check_all_cosets(p, p1, p2)
                     #ind = i1*dim2 + i2
