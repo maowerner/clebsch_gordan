@@ -28,14 +28,6 @@ class TestCG_CMF(unittest.TestCase):
         self.assertEqual(self.gc.pref, tmp)
         self.assertEqual(self.gc.pref1, tmp)
         self.assertEqual(self.gc.pref2, tmp)
-        # check groups selected
-        self.assertEqual(self.gc.g, self.g[0])
-        self.assertEqual(self.gc.g0, self.g[0])
-        self.assertEqual(self.gc.g1, self.g[0])
-        self.assertEqual(self.gc.g2, self.g[0])
-        # check result arrays
-        self.assertEqual(self.gc.irreps, [])
-        self.assertEqual(self.gc.cgs, [])
 
     def test_momenta(self):
         tmp = np.asarray([0., 0., 0.])
@@ -95,16 +87,10 @@ class TestCG_CMF(unittest.TestCase):
     #        res_theo[self.gc.g.irrepsname.index(irname)] += 1
     #    self.assertEqual(multi, res_theo)
 
-    def test_check_index(self):
-        self.assertTrue(self.gc.check_index(0, 0, 1, 1))
-
     def test_cg_new(self):
-        self.gc.calc_cg_new()
-        cgnames = [[ir.name, 0] for ir in self.g[0].irreps]
-        cgnames[0][1] = 1 # A1g
-        cgnames = [tuple(x) for x in cgnames]
-
-        print(self.gc.cgnames)
+        self.gc.calc_cg_new(self.g, self.gc.p)
+        cgnames = [("A1g", 1, 1)]
+        #print(self.gc.cgnames)
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
@@ -130,14 +116,6 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         self.assertEqual(self.gc.pref, self.p0)
         self.assertEqual(self.gc.pref1, self.p1)
         self.assertEqual(self.gc.pref2, self.p1)
-        # check groups selected
-        self.assertEqual(self.gc.g, self.g[0])
-        self.assertEqual(self.gc.g0, self.g[0])
-        self.assertEqual(self.gc.g1, self.g[1])
-        self.assertEqual(self.gc.g2, self.g[1])
-        # check result arrays
-        self.assertEqual(self.gc.irreps, [])
-        self.assertEqual(self.gc.cgs, [])
 
     def test_momenta(self):
         tmp = [[-1.,0.,0.], [0.,-1.,0.], [0.,0.,-1.],[0.,0.,1.], [0.,1.,0.], [1.,0.,0.]]
@@ -205,20 +183,12 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new()
-        cgnames = [[ir.name, 0] for ir in self.g[0].irreps]
-        cgnames[0][1] = 1 # A1g
-        cgnames[9][1] = 1 # T1u
-        cgnames[14][1] = 1 # Ep1g
-        cgnames = [tuple(x) for x in cgnames]
-
-        print(self.gc.cgnames)
+        self.gc.calc_cg_new(self.g, 0)
+        cgnames = [("A1g", 1, 1), ("T1u", 1, 3), ("Ep1g", 1, 2)]
+        #print(self.gc.cgnames)
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
-
-    def test_check_index(self):
-        self.assertTrue(self.gc.check_index(0, 1, 1, 1))
 
 #@unittest.skip("skip MF1")
 class TestCG_MF1_one_zero(unittest.TestCase):
@@ -241,14 +211,6 @@ class TestCG_MF1_one_zero(unittest.TestCase):
         self.assertEqual(self.gc.pref, self.p1)
         self.assertEqual(self.gc.pref1, self.p1)
         self.assertEqual(self.gc.pref2, self.p0)
-        # check groups selected
-        self.assertEqual(self.gc.g, self.g[1])
-        self.assertEqual(self.gc.g0, self.g[0])
-        self.assertEqual(self.gc.g1, self.g[1])
-        self.assertEqual(self.gc.g2, self.g[0])
-        # check result arrays
-        self.assertEqual(self.gc.irreps, [])
-        self.assertEqual(self.gc.cgs, [])
 
     def test_momenta(self):
         tmp = [[-1.,0.,0.], [0.,-1.,0.], [0.,0.,-1.],[0.,0.,1.], [0.,1.,0.], [1.,0.,0.]]
@@ -318,14 +280,12 @@ class TestCG_MF1_one_zero(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new()
-        print(self.gc.cgnames)
-        print(self.gc.cgind)
+        self.gc.calc_cg_new(self.g, 1)
+        cgnames = [("A1u", 1, 1), ("A2g", 3, 1), ("Ep1g", 1, 2)]
+        #print(self.gc.cgnames)
+        #print(self.gc.cgind)
         #print(self.gc.cg)
-        self.assertTrue(True)
-
-    def test_check_index(self):
-        self.assertTrue(self.gc.check_index(0, 0, 1, 1))
+        self.assertEqual(self.gc.cgnames, cgnames)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

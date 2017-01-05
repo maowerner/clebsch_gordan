@@ -97,8 +97,10 @@ class TOh(object):
             for i, el in enumerate(quat.qPar):
                 self.elements.append(quat.QNew.create_from_vector(-el, -1))
                 self.lelements.append(i+72);
+        self.p2 = 0
         # select elements when pref is given
         if self.pref is not None:
+            self.p2 = np.vdot(self.pref, self.pref)
             selected = []
             elem = []
             for el, num in zip(self.elements, self.lelements):
