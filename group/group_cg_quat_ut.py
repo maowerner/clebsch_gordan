@@ -8,12 +8,14 @@ import utils
 import group_class_quat as gc
 import group_cg_quat as gcg
 
-#@unittest.skip("skip CMF")
+g = [gc.TOh(irreps=True), gc.TOh(pref=np.asarray([0., 0., 1.]), irreps=True)]
+
+@unittest.skip("skip CMF")
 class TestCG_CMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        self.g = [gc.TOh(irreps=True)]
-        self.gc = gcg.TOhCG(0, 0, 0, groups=self.g)
+        #self.g = [gc.TOh(irreps=True)]
+        self.gc = gcg.TOhCG(0, 0, 0, groups=g)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -47,9 +49,9 @@ class TestCG_CMF(unittest.TestCase):
     def test_cosets(self):
         #res_theo = np.arange(48, dtype=int).reshape(1,48)
         # check first coset
-        res1 = self.gc.gen_coset(self.g, 0)
+        res1 = self.gc.gen_coset(g, 0)
         # check second coset
-        res2 = self.gc.gen_coset(self.g, 0)
+        res2 = self.gc.gen_coset(g, 0)
         self.assertEqual(res1, res2)
         self.assertEqual(res1.shape, (1,96))
         self.assertEqual(res2.shape, (1,96))
@@ -57,10 +59,10 @@ class TestCG_CMF(unittest.TestCase):
     def test_induced_representations(self):
         res_theo = np.ones((96, 1, 1), dtype=complex)
         # check the first coset
-        res = self.gc.gen_ind_reps(self.g, 0, "A1g", self.gc.coset1)
+        res = self.gc.gen_ind_reps(g, 0, "A1g", self.gc.coset1)
         self.assertEqual(res, res_theo)
         # check the second coset
-        res = self.gc.gen_ind_reps(self.g, 0, "A1g", self.gc.coset2)
+        res = self.gc.gen_ind_reps(g, 0, "A1g", self.gc.coset2)
         self.assertEqual(res, res_theo)
 
     def test_sort_momenta(self):
@@ -88,21 +90,110 @@ class TestCG_CMF(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(self.g, self.gc.p)
+        self.gc.calc_cg_new(g, self.gc.p)
         cgnames = [("A1g", 1, 1)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
-#@unittest.skip("skip CMF, non zero momenta")
+#@unittest.skip("skip CMF reread test")
+class TestCG_CMF_read(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        #self.g = [gc.TOh(irreps=True)]
+        tmp = gcg.TOhCG(0, 0, 0, groups=g)
+        tmp.save()
+        self.gc = gcg.TOhCG.read()
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_attributes(self):
+        # check p2
+        self.assertEqual(self.gc.p, 0)
+        self.assertEqual(self.gc.p1, 0)
+        self.assertEqual(self.gc.p2, 0)
+        # check reference momentum
+        tmp = np.asarray([0., 0., 0.])
+        self.assertEqual(self.gc.pref, tmp)
+        self.assertEqual(self.gc.pref1, tmp)
+        self.assertEqual(self.gc.pref2, tmp)
+
+    def test_momenta(self):
+        tmp = np.asarray([0., 0., 0.])
+        # check individual momenta
+        self.assertEqual(len(self.gc.momenta), 1)
+        self.assertEqual(self.gc.momenta[0], tmp)
+        self.assertEqual(len(self.gc.momenta1), 1)
+        self.assertEqual(self.gc.momenta1[0], tmp)
+        self.assertEqual(len(self.gc.momenta2), 1)
+        self.assertEqual(self.gc.momenta2[0], tmp)
+        # check combined momenta
+        self.assertEqual(len(self.gc.allmomenta), 1)
+        self.assertEqual(self.gc.allmomenta[0][0], tmp)
+        self.assertEqual(self.gc.allmomenta[0][1], tmp)
+        self.assertEqual(self.gc.allmomenta[0][2], tmp)
+
+    def test_cosets(self):
+        #res_theo = np.arange(48, dtype=int).reshape(1,48)
+        # check first coset
+        res1 = self.gc.gen_coset(g, 0)
+        # check second coset
+        res2 = self.gc.gen_coset(g, 0)
+        self.assertEqual(res1, res2)
+        self.assertEqual(res1.shape, (1,96))
+        self.assertEqual(res2.shape, (1,96))
+
+    def test_induced_representations(self):
+        res_theo = np.ones((96, 1, 1), dtype=complex)
+        # check the first coset
+        res = self.gc.gen_ind_reps(g, 0, "A1g", self.gc.coset1)
+        self.assertEqual(res, res_theo)
+        # check the second coset
+        res = self.gc.gen_ind_reps(g, 0, "A1g", self.gc.coset2)
+        self.assertEqual(res, res_theo)
+
+    def test_sort_momenta(self):
+        tmp = np.zeros((3,))
+        self.assertEqual(len(self.gc.smomenta1), 1)
+        self.assertEqual(self.gc.smomenta1[0][0], tmp)
+        self.assertEqual(self.gc.smomenta1[0][1], 0)
+        self.assertEqual(len(self.gc.smomenta2), 1)
+        self.assertEqual(self.gc.smomenta2[0][0], tmp)
+        self.assertEqual(self.gc.smomenta2[0][1], 0)
+
+    def test_check_all_cosets(self):
+        tmp = np.zeros((3,))
+        res = self.gc.check_all_cosets(tmp, tmp, tmp)
+        self.assertEqual(res, (0,0))
+
+    #def test_multiplicities(self):
+    #    multi = self.gc.multiplicities()
+    #    res_theo = np.zeros((self.gc.g.nclasses,), dtype=int)
+    #    print(self.gc.g.irrepsname)
+    #    print(self.gc.g.lclasses)
+    #    print(self.gc.g.lelements)
+    #    for irname in ["A1g", "A2g", "Ep1g"]:
+    #        res_theo[self.gc.g.irrepsname.index(irname)] += 1
+    #    self.assertEqual(multi, res_theo)
+
+    def test_cg_new(self):
+        self.gc.calc_cg_new(g, self.gc.p)
+        cgnames = [("A1g", 1, 1)]
+        #print(self.gc.cgnames)
+        #print(self.gc.cgind)
+        #print(self.gc.cg)
+        self.assertEqual(self.gc.cgnames, cgnames)
+
+@unittest.skip("skip CMF, non zero momenta")
 class TestCG_CMF_non_zero_mom(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.p0 = np.asarray([0., 0., 0.])
         self.p1 = np.asarray([0., 0., 1.])
-        self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
-        self.gc = gcg.TOhCG(0, 1, 1, groups=self.g)
+        #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
+        self.gc = gcg.TOhCG(0, 1, 1, groups=g)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -137,20 +228,20 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
 
     def test_cosets(self):
         # check first coset
-        res1 = self.gc.gen_coset(self.g, 1)
+        res1 = self.gc.gen_coset(g, 1)
         # check second coset
-        res2 = self.gc.gen_coset(self.g, 1)
+        res2 = self.gc.gen_coset(g, 1)
         self.assertEqual(res1, res2)
         self.assertEqual(res1.shape, (6,16))
         self.assertEqual(res2.shape, (6,16))
 
     def test_induced_representations(self):
-        res_theo = np.ones((self.g[0].order,), dtype=complex)*6.
+        res_theo = np.ones((g[0].order,), dtype=complex)*6.
         # check the first coset
-        res = self.gc.gen_ind_reps(self.g, 1, "A1g", self.gc.coset1)
+        res = self.gc.gen_ind_reps(g, 1, "A1g", self.gc.coset1)
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
         # check the second coset
-        res = self.gc.gen_ind_reps(self.g, 1, "A1g", self.gc.coset2)
+        res = self.gc.gen_ind_reps(g, 1, "A1g", self.gc.coset2)
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
 
     def test_sort_momenta(self):
@@ -183,21 +274,21 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(self.g, 0)
+        self.gc.calc_cg_new(g, 0)
         cgnames = [("A1g", 1, 1), ("T1u", 1, 3), ("Ep1g", 1, 2)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
-#@unittest.skip("skip MF1")
+@unittest.skip("skip MF1")
 class TestCG_MF1_one_zero(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.p0 = np.asarray([0., 0., 0.])
         self.p1 = np.asarray([0., 0., 1.])
-        self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
-        self.gc = gcg.TOhCG(1, 1, 0, groups=self.g)
+        #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
+        self.gc = gcg.TOhCG(1, 1, 0, groups=g)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -233,20 +324,20 @@ class TestCG_MF1_one_zero(unittest.TestCase):
     def test_cosets(self):
         #res_theo = np.arange(48, dtype=int).reshape(1,48)
         # check first coset
-        res1 = self.gc.gen_coset(self.g, 1)
+        res1 = self.gc.gen_coset(g, 1)
         # check second coset
-        res2 = self.gc.gen_coset(self.g, 0)
+        res2 = self.gc.gen_coset(g, 0)
         self.assertEqual(res1.shape, (6,16))
         self.assertEqual(res2.shape, (1,96))
 
     def test_induced_representations(self):
         # check the second coset
         res_theo = np.ones((96, 1, 1), dtype=complex)
-        res = self.gc.gen_ind_reps(self.g, 0, "A1g", self.gc.coset2)
+        res = self.gc.gen_ind_reps(g, 0, "A1g", self.gc.coset2)
         self.assertEqual(res, res_theo)
         # check the first coset
-        res_theo = np.ones((self.g[0].order,), dtype=complex)*6.
-        res = self.gc.gen_ind_reps(self.g, 1, "A1g", self.gc.coset1)
+        res_theo = np.ones((g[0].order,), dtype=complex)*6.
+        res = self.gc.gen_ind_reps(g, 1, "A1g", self.gc.coset1)
         self.assertEqual(np.sum(res,axis=(1,2)), res_theo)
 
     def test_sort_momenta(self):
@@ -280,7 +371,7 @@ class TestCG_MF1_one_zero(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(self.g, 1)
+        self.gc.calc_cg_new(g, 1)
         cgnames = [("A1u", 1, 1), ("A2g", 3, 1), ("Ep1g", 1, 2)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)

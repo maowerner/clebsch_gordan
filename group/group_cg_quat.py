@@ -56,20 +56,78 @@ class TOhCG(object):
             self.gamma2 = None
             self.dim1 = 0
             self.dim2 = 0
+            self.irstr1 = ""
+            self.irstr2 = ""
         else:
-            irstr = "A1u" if int(p1) in [0,3] else "A2u"
-            #irstr = "E1g"
-            self.gamma1 = self.gen_ind_reps(groups, p1, irstr, self.coset1)
+            self.irstr1 = "A1u" if int(p1) in [0,3] else "A2u"
+            self.gamma1 = self.gen_ind_reps(groups, p1, self.irstr1, self.coset1)
             self.dim1 = 1
-            irstr = "A1u" if int(p2) in [0,3] else "A2u"
-            #irstr = "E1g"
-            self.gamma2 = self.gen_ind_reps(groups, p2, irstr, self.coset2)
+            self.irstr2 = "A1u" if int(p2) in [0,3] else "A2u"
+            self.gamma2 = self.gen_ind_reps(groups, p2, self.irstr2, self.coset2)
             self.dim2 = 1
             self.sort_momenta(groups[self.indp0])
         #print(self.gamma1[:5])
 
         self.calc_cg_new(groups, self.indp)
         self.check_cg()
+
+    @classmethod
+    def read(cls, path=None, filename=None, momenta=(0,0,0), irreps=["A1u","A1u"]):
+        if filename is None:
+            _filename = "CG_P%02d_k%02d_%s_k%02d_%s.npz" % (
+                    momenta[0], momenta[1], irreps[0], momenta[2], irreps[1])
+        else:
+            _filename = filename
+        if path is None:
+            _path = "./cg/"
+        else:
+            _path = path
+        _name = "/".join([_path, _filename])
+
+        with np.load(_name) as fh:
+            params = fh["params"]
+            p, p1, p2 = params[0]
+            cgnames = [x for x in params[6:]]
+            tmp = cls(p, p1, p2)
+            tmp.cgnames = cgnames
+            tmp.irstr1, tmp.dim1, tmp.irstr2, tmp.dim2 = params[1]
+            tmp.indices = params[2]
+            tmp.smomenta1 = params[3]
+            tmp.smomenta2 = params[4]
+            tmp.allmomenta = params[5]
+            tmp.cg = fh["cg"]
+            tmp.cgind = fh["cgind"]
+            tmp.coset1 = fh["coset1"]
+            tmp.coset2 = fh["coset2"]
+            tmp.gamma1 = fh["gamma1"]
+            tmp.gamma2 = fh["gamma2"]
+        return tmp
+
+    def save(self, path=None, filename=None):
+        if filename is None:
+            _filename = "CG_P%02d_k%02d_%s_k%02d_%s.npz" % (
+                    self.p, self.p1, self.irstr1, self.p2, self.irstr2)
+        else:
+            _filename = filename
+        if path is None:
+            _path = "./cg/"
+        else:
+            _path = path
+        _name = "/".join([_path, _filename])
+        # TODO ensure path
+        params = []
+        params.append((self.p, self.p1, self.p2))
+        params.append((self.irstr1, self.dim1, self.irstr2, self.dim2))
+        params.append(self.indices)
+        params.append(self.smomenta1)
+        params.append(self.smomenta2)
+        params.append(self.allmomenta)
+        for cgn in self.cgnames:
+            params.append(cgn)
+        params = np.asarray(params, dtype=object)
+        np.savez(_name, params=params, cg=self.cg, cgind=self.cgind,
+                gamma1=self.gamma1, gamma2=self.gamma2,
+                coset1=self.coset1, coset2=self.coset2)
 
     def gen_coset(self, groups, p):
         """Cosets contain the numbers of the rotation objects
@@ -236,17 +294,20 @@ class TOhCG(object):
         return multi
 
     def calc_cg_new(self, groups, p):
+        self.cgnames = []
+        self.cgind = []
+        self.cg = []
+        if groups is None:
+            return
         g = groups[p]
-        multi = np.zeros((g.nclasses,), dtype=int)
+        multi = 0
         dim1 = self.gamma1.shape[1]
         dim2 = self.gamma2.shape[1]
         dim12 = dim1*dim2
         coeff = np.zeros((len(self.indices),), dtype=complex)
-        self.cgnames = []
-        self.cgind = []
-        self.cg = []
         lind = []
         for indir, ir in enumerate(g.irreps):
+            multi = 0
             lcoeffs = []
             dim = ir.dim
             # loop over all column index combinations that conserve the COM momentum
@@ -281,8 +342,6 @@ class TOhCG(object):
                         continue
                     # orthogonalize w.r.t. already found vectors of other irreps
                     for lcg in self.cg:
-                        #print("checking coeff against:")
-                        #print(lcg)
                         for vec in lcg:
                             coeff = utils.gram_schmidt(coeff, vec, prec=self.prec)
                             ncoeff = np.sqrt(np.vdot(coeff, coeff))
@@ -294,25 +353,24 @@ class TOhCG(object):
                     if ncoeff > self.prec:
                         lcoeffs.append(coeff.copy())
                         lind.append((mu, mup, mu1, mu2))
-                        multi[indir] += 1
-            if multi[indir] > 0:
-                #print("%s: %d times" % (ir.name, multi[indir]/dim))
-                self.cgnames.append((ir.name, multi[indir]/dim, dim))
+                        multi += 1
+            if multi > 0:
+                self.cgnames.append((ir.name, multi/dim, dim))
                 self.cg.append(np.asarray(lcoeffs).copy())
-                #print("appended coeffs:")
-                #print(self.cg[-1])
                 self.cgind.append(np.asarray(lind).copy())
+        self.cg = np.asarray(self.cg)
+        self.cgind = np.asarray(self.cgind)
 
     def check_cg(self):
         """Rows of the Clebsch-Gordan coefficients are orthonormal by construction.
         This routine checks the columns of the Clebsch-Gordan coefficients."""
+        if isinstance(self.cg, list):
+            return
         allcgs = []
         for lcg in self.cg:
             for vec in lcg:
                 allcgs.append(vec)
         allcgs = np.asarray(allcgs)
-        #print("test cgs, shape:")
-        #print(allcgs.shape)
         ortho = True
         norm = True
         for i, j in it.combinations(range(allcgs.shape[1]), 2):
