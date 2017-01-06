@@ -428,5 +428,37 @@ class TOhCG(object):
                             print("")
                             count = 0
 
+    def get_cg(self, p1, p2, irrep):
+        """Pass the 3-momenta of both particles,
+        check for correct order of momenta.
+        """
+        cg = []
+        index = None
+        # select correct momentum
+        for ind, (p, k1, k2) in enumerate(self.allmomenta):
+            if utils._eq(k1, p1) and utils._eq(k2, p2):
+                index = ind
+                break
+        # if momentum not allowed, return None
+        if index is None:
+            print("Momentum not present!")
+            return None
+
+        # get coefficients
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            if irrep != name:
+                continue
+            tmpcg = self.cg[i][:,index]
+            for m in range(multi):
+                select = slice(m, None, multi)
+                cg.append(tmpcg[select])
+            break
+
+        # if none found, return None
+        if not cg:
+            return None
+        cg = np.asarray(cg)
+        return cg
+
 if __name__ == "__main__":
     print("for checks execute the test script")

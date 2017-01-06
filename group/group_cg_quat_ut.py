@@ -16,6 +16,7 @@ class TestCG_CMF(unittest.TestCase):
     def setUpClass(self):
         #self.g = [gc.TOh(irreps=True)]
         self.gc = gcg.TOhCG(0, 0, 0, groups=g)
+        self.p0 = np.asarray([0., 0., 0.])
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -26,25 +27,23 @@ class TestCG_CMF(unittest.TestCase):
         self.assertEqual(self.gc.p1, 0)
         self.assertEqual(self.gc.p2, 0)
         # check reference momentum
-        tmp = np.asarray([0., 0., 0.])
-        self.assertEqual(self.gc.pref, tmp)
-        self.assertEqual(self.gc.pref1, tmp)
-        self.assertEqual(self.gc.pref2, tmp)
+        self.assertEqual(self.gc.pref, self.p0)
+        self.assertEqual(self.gc.pref1, self.p0)
+        self.assertEqual(self.gc.pref2, self.p0)
 
     def test_momenta(self):
-        tmp = np.asarray([0., 0., 0.])
         # check individual momenta
         self.assertEqual(len(self.gc.momenta), 1)
-        self.assertEqual(self.gc.momenta[0], tmp)
+        self.assertEqual(self.gc.momenta[0], self.p0)
         self.assertEqual(len(self.gc.momenta1), 1)
-        self.assertEqual(self.gc.momenta1[0], tmp)
+        self.assertEqual(self.gc.momenta1[0], self.p0)
         self.assertEqual(len(self.gc.momenta2), 1)
-        self.assertEqual(self.gc.momenta2[0], tmp)
+        self.assertEqual(self.gc.momenta2[0], self.p0)
         # check combined momenta
         self.assertEqual(len(self.gc.allmomenta), 1)
-        self.assertEqual(self.gc.allmomenta[0][0], tmp)
-        self.assertEqual(self.gc.allmomenta[0][1], tmp)
-        self.assertEqual(self.gc.allmomenta[0][2], tmp)
+        self.assertEqual(self.gc.allmomenta[0][0], self.p0)
+        self.assertEqual(self.gc.allmomenta[0][1], self.p0)
+        self.assertEqual(self.gc.allmomenta[0][2], self.p0)
 
     def test_cosets(self):
         #res_theo = np.arange(48, dtype=int).reshape(1,48)
@@ -68,15 +67,14 @@ class TestCG_CMF(unittest.TestCase):
     def test_sort_momenta(self):
         tmp = np.zeros((3,))
         self.assertEqual(len(self.gc.smomenta1), 1)
-        self.assertEqual(self.gc.smomenta1[0][0], tmp)
+        self.assertEqual(self.gc.smomenta1[0][0], self.p0)
         self.assertEqual(self.gc.smomenta1[0][1], 0)
         self.assertEqual(len(self.gc.smomenta2), 1)
-        self.assertEqual(self.gc.smomenta2[0][0], tmp)
+        self.assertEqual(self.gc.smomenta2[0][0], self.p0)
         self.assertEqual(self.gc.smomenta2[0][1], 0)
 
     def test_check_all_cosets(self):
-        tmp = np.zeros((3,))
-        res = self.gc.check_all_cosets(tmp, tmp, tmp)
+        res = self.gc.check_all_cosets(self.p0, self.p0, self.p0)
         self.assertEqual(res, (0,0))
 
     #def test_multiplicities(self):
@@ -97,11 +95,17 @@ class TestCG_CMF(unittest.TestCase):
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
+    def test_get_cg(self):
+        res = self.gc.get_cg(self.p0, self.p0, "A1g")
+        res_theo = np.ones((1,), dtype=complex)
+        self.assertEqual(res, res_theo)
+
 #@unittest.skip("skip CMF reread test")
 class TestCG_CMF_read(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         #self.g = [gc.TOh(irreps=True)]
+        self.p0 = np.zeros((3,))
         tmp = gcg.TOhCG(0, 0, 0, groups=g)
         tmp.save()
         self.gc = gcg.TOhCG.read()
@@ -115,25 +119,23 @@ class TestCG_CMF_read(unittest.TestCase):
         self.assertEqual(self.gc.p1, 0)
         self.assertEqual(self.gc.p2, 0)
         # check reference momentum
-        tmp = np.asarray([0., 0., 0.])
-        self.assertEqual(self.gc.pref, tmp)
-        self.assertEqual(self.gc.pref1, tmp)
-        self.assertEqual(self.gc.pref2, tmp)
+        self.assertEqual(self.gc.pref, self.p0)
+        self.assertEqual(self.gc.pref1, self.p0)
+        self.assertEqual(self.gc.pref2, self.p0)
 
     def test_momenta(self):
-        tmp = np.asarray([0., 0., 0.])
         # check individual momenta
         self.assertEqual(len(self.gc.momenta), 1)
-        self.assertEqual(self.gc.momenta[0], tmp)
+        self.assertEqual(self.gc.momenta[0], self.p0)
         self.assertEqual(len(self.gc.momenta1), 1)
-        self.assertEqual(self.gc.momenta1[0], tmp)
+        self.assertEqual(self.gc.momenta1[0], self.p0)
         self.assertEqual(len(self.gc.momenta2), 1)
-        self.assertEqual(self.gc.momenta2[0], tmp)
+        self.assertEqual(self.gc.momenta2[0], self.p0)
         # check combined momenta
         self.assertEqual(len(self.gc.allmomenta), 1)
-        self.assertEqual(self.gc.allmomenta[0][0], tmp)
-        self.assertEqual(self.gc.allmomenta[0][1], tmp)
-        self.assertEqual(self.gc.allmomenta[0][2], tmp)
+        self.assertEqual(self.gc.allmomenta[0][0], self.p0)
+        self.assertEqual(self.gc.allmomenta[0][1], self.p0)
+        self.assertEqual(self.gc.allmomenta[0][2], self.p0)
 
     def test_cosets(self):
         #res_theo = np.arange(48, dtype=int).reshape(1,48)
@@ -157,15 +159,15 @@ class TestCG_CMF_read(unittest.TestCase):
     def test_sort_momenta(self):
         tmp = np.zeros((3,))
         self.assertEqual(len(self.gc.smomenta1), 1)
-        self.assertEqual(self.gc.smomenta1[0][0], tmp)
+        self.assertEqual(self.gc.smomenta1[0][0], self.p0)
         self.assertEqual(self.gc.smomenta1[0][1], 0)
         self.assertEqual(len(self.gc.smomenta2), 1)
-        self.assertEqual(self.gc.smomenta2[0][0], tmp)
+        self.assertEqual(self.gc.smomenta2[0][0], self.p0)
         self.assertEqual(self.gc.smomenta2[0][1], 0)
 
     def test_check_all_cosets(self):
         tmp = np.zeros((3,))
-        res = self.gc.check_all_cosets(tmp, tmp, tmp)
+        res = self.gc.check_all_cosets(self.p0, self.p0, self.p0)
         self.assertEqual(res, (0,0))
 
     #def test_multiplicities(self):
@@ -185,6 +187,11 @@ class TestCG_CMF_read(unittest.TestCase):
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
+
+    def test_get_cg(self):
+        res = self.gc.get_cg(self.p0, self.p0, "A1g")
+        res_theo = np.ones((1,), dtype=complex)
+        self.assertEqual(res, res_theo)
 
 #@unittest.skip("skip CMF, non zero momenta")
 class TestCG_CMF_non_zero_mom(unittest.TestCase):
@@ -377,6 +384,17 @@ class TestCG_MF1_one_zero(unittest.TestCase):
         #print(self.gc.cgind)
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
+
+    def test_get_cg_A1u(self):
+        res = self.gc.get_cg(self.p1, self.p0, "A1u")
+        res_theo = np.zeros((1,), dtype=complex)
+        self.assertEqual(res, res_theo)
+
+    def test_get_cg_A2g(self):
+        res = self.gc.get_cg(self.p1, self.p0, "A2g")
+        res_theo = np.zeros((3,1), dtype=complex)
+        res_theo[2,0] = 1.
+        self.assertEqual(res, res_theo)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
