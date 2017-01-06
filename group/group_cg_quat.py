@@ -16,18 +16,14 @@ class TOhCG(object):
         self.p = p
         self.p1 = p1
         self.p2 = p2
-        if groups is None:
-            self.indp0 = None
-            self.indp = None
-            self.indp1 = None
-            self.indp2 = None
-        else:
+        indp0, indp1, indp2, indp = None, None, None, None
+        if groups is not None:
             pindex = [x.p2 for x in groups]
             try:
-                self.indp0 = pindex.index(0)
-                self.indp = pindex.index(p)
-                self.indp1 = pindex.index(p1)
-                self.indp2 = pindex.index(p2)
+                indp0 = pindex.index(0)
+                indp = pindex.index(p)
+                indp1 = pindex.index(p1)
+                indp2 = pindex.index(p2)
             except IndexError:
                 raise RuntimeError("no group with P^2 = %d (%d, %d) found" % (p, p1, p2))
         # lookup table for reference momenta
@@ -40,8 +36,8 @@ class TOhCG(object):
 
         # get the cosets, always in the maximal group (2O here)
         # returns None if groups is None
-        self.coset1 = self.gen_coset(groups, self.indp1)
-        self.coset2 = self.gen_coset(groups, self.indp2)
+        self.coset1 = self.gen_coset(groups, indp0, indp1)
+        self.coset2 = self.gen_coset(groups, indp0, indp2)
         #print(self.coset1)
         #print(self.coset2)
 
@@ -60,15 +56,15 @@ class TOhCG(object):
             self.irstr2 = ""
         else:
             self.irstr1 = "A1u" if int(p1) in [0,3] else "A2u"
-            self.gamma1 = self.gen_ind_reps(groups, p1, self.irstr1, self.coset1)
+            self.gamma1 = self.gen_ind_reps(groups, indp0, indp1, self.irstr1, self.coset1)
             self.dim1 = 1
             self.irstr2 = "A1u" if int(p2) in [0,3] else "A2u"
-            self.gamma2 = self.gen_ind_reps(groups, p2, self.irstr2, self.coset2)
+            self.gamma2 = self.gen_ind_reps(groups, indp0, indp2, self.irstr2, self.coset2)
             self.dim2 = 1
-            self.sort_momenta(groups[self.indp0])
+            self.sort_momenta(groups[indp0])
         #print(self.gamma1[:5])
 
-        self.calc_cg_new(groups, self.indp)
+        self.calc_cg_new(groups, indp)
         self.check_cg()
 
     @classmethod
@@ -129,12 +125,12 @@ class TOhCG(object):
                 gamma1=self.gamma1, gamma2=self.gamma2,
                 coset1=self.coset1, coset2=self.coset2)
 
-    def gen_coset(self, groups, p):
+    def gen_coset(self, groups, p0, p):
         """Cosets contain the numbers of the rotation objects
         """
         if groups is None:
             return None
-        g0 = groups[self.indp0]
+        g0 = groups[p0]
         g1 = groups[p]
         n = int(g0.order/g1.order)
         if n == 0:
@@ -237,8 +233,8 @@ class TOhCG(object):
                             self.indices.append((j1*self.dim1+x[0], j2*self.dim2+x[1]))
 
 
-    def gen_ind_reps(self, groups, p, irstr, coset):
-        g0 = groups[self.indp0]
+    def gen_ind_reps(self, groups, p0, p, irstr, coset):
+        g0 = groups[p0]
         g1 = groups[p]
         ir = g1.irreps[g1.irrepsname.index(irstr)]
         dim = ir.dim
@@ -314,12 +310,15 @@ class TOhCG(object):
             for mup, (mu1, mu2) in it.product(range(dim), self.indices):
                 # loop over the row of the final irrep
                 for mu in range(dim):
+                    if mu != mup:
+                        continue
                     coeff.fill(0.)
                     # loop over all combinations of rows of the induced
                     # representations
                     for ind1, (mu1p, mu2p) in enumerate(self.indices):
                         for i in range(g.order):
-                            tmp = ir.mx[i][mu, mup].conj()
+                            tmp = ir.mx[i][mu, mu].conj()
+                            #tmp = ir.mx[i][mu, mup].conj()
                             look = g.lelements[i]
                             tmp *= self.gamma1[look, mu1p, mu1]
                             tmp *= self.gamma2[look, mu2p, mu2]
@@ -412,7 +411,8 @@ class TOhCG(object):
             # loop over multiplicities
             for m in range(multi):
                 print("multiplicity %d" % m)
-                select = slice(m*dim, (m+1)*dim)
+                select = slice(m, None, multi)
+                #select = slice(m*dim, (m+1)*dim)
                 # loop over momenta
                 #print("full vector")
                 #print(self.cg[i][select])
