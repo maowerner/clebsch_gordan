@@ -24,59 +24,71 @@ def main():
     irnames = groups[0].irrepsname
     for p in range(p2max):
         print(" %d x %d -> 0 ".center(40, "+") % (p, p))
-        cgs = group.TOhCG(0, p, p, groups)
-        cgs.display()
-        #for ir in irnames:
-        #    a, b, c = cgs.get_pion_cg(ir)
-        #    if b is not None:
-        #        print(ir)
-        #        group.display(b, c)
+        try:
+            cgs = group.TOhCG(0, p, p, groups)
+            cgs.display()
+            #for ir in irnames:
+            #    a, b, c = cgs.get_pion_cg(ir)
+            #    if b is not None:
+            #        print(ir)
+            #        group.display(b, c)
+        except RuntimeError:
+            continue
 
     print(" MF1 ".center(40, "="))
     irnames = groups[1].irrepsname
     for i, j in it.product(range(p2max), repeat=2):
-        if j-i != 1:
-            continue
         if i == 0 or j == 0:
             empty = 3
         else:
             empty = 4
-        print(" %d x %d -> 1 ".center(40, "+") % (i, j))
-        cgs = group.TOhCG(1, i, j, groups)
-        cgs.display(emptyline = empty)
-        #for ir in irnames:
-        #    a, b, c = cgs.get_pion_cg(ir)
-        #    if b is not None:
-        #        print(ir)
-        #        group.display(b, c, empty=empty)
+        try:
+            cgs = group.TOhCG(1, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 1 ".center(40, "+") % (i, j))
+            cgs.display(emptyline = empty)
+            #for ir in irnames:
+            #    a, b, c = cgs.get_pion_cg(ir)
+            #    if b is not None:
+            #        print(ir)
+            #        group.display(b, c, empty=empty)
+        except RuntimeError:
+            continue
 
     print(" MF2 ".center(40, "="))
     irnames = groups[2].irrepsname
     for i, j in it.product(range(p2max), repeat=2):
-        if j-i != 2:
+        try:
+            cgs = group.TOhCG(2, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 2 ".center(40, "+") % (i, j))
+            cgs.display(emptyline = empty)
+            #for ir in irnames:
+            #    a, b, c = cgs.get_pion_cg(ir)
+            #    if b is not None:
+            #        print(ir)
+            #        group.display(b, c, empty=empty)
+        except RuntimeError:
             continue
-        print(" %d x %d -> 2 ".center(40, "+") % (i, j))
-        cgs = group.TOhCG(2, i, j, groups)
-        cgs.display(emptyline = empty)
-        #for ir in irnames:
-        #    a, b, c = cgs.get_pion_cg(ir)
-        #    if b is not None:
-        #        print(ir)
-        #        group.display(b, c, empty=empty)
 
     print(" MF3 ".center(40, "="))
     irnames = groups[3].irrepsname
     for i, j in it.product(range(p2max), repeat=2):
-        if j-i != 3:
+        try:
+            cgs = group.TOhCG(3, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 3 ".center(40, "+") % (i, j))
+            cgs.display(emptyline = empty)
+            #for ir in irnames:
+            #    a, b, c = cgs.get_pion_cg(ir)
+            #    if b is not None:
+            #        print(ir)
+            #        group.display(b, c, empty=empty)
+        except RuntimeError:
             continue
-        print(" %d x %d -> 3 ".center(40, "+") % (i, j))
-        cgs = group.TOhCG(3, i, j, groups)
-        cgs.display(emptyline = empty)
-        #for ir in irnames:
-        #    a, b, c = cgs.get_pion_cg(ir)
-        #    if b is not None:
-        #        print(ir)
-        #        group.display(b, c, empty=empty)
 
 if __name__ == "__main__":
     try:

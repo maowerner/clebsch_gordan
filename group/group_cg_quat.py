@@ -80,23 +80,24 @@ class TOhCG(object):
             _path = path
         _name = "/".join([_path, _filename])
 
-        with np.load(_name) as fh:
-            params = fh["params"]
-            p, p1, p2 = params[0]
-            cgnames = [x for x in params[6:]]
-            tmp = cls(p, p1, p2)
-            tmp.cgnames = cgnames
-            tmp.irstr1, tmp.dim1, tmp.irstr2, tmp.dim2 = params[1]
-            tmp.indices = params[2]
-            tmp.smomenta1 = params[3]
-            tmp.smomenta2 = params[4]
-            tmp.allmomenta = params[5]
-            tmp.cg = fh["cg"]
-            tmp.cgind = fh["cgind"]
-            tmp.coset1 = fh["coset1"]
-            tmp.coset2 = fh["coset2"]
-            tmp.gamma1 = fh["gamma1"]
-            tmp.gamma2 = fh["gamma2"]
+        fh = np.load(_name)
+        params = fh["params"]
+        p, p1, p2 = params[0]
+        cgnames = [x for x in params[6:]]
+        tmp = cls(p, p1, p2)
+        tmp.cgnames = cgnames
+        tmp.irstr1, tmp.dim1, tmp.irstr2, tmp.dim2 = params[1]
+        tmp.indices = params[2]
+        tmp.smomenta1 = params[3]
+        tmp.smomenta2 = params[4]
+        tmp.allmomenta = params[5]
+        tmp.cg = fh["cg"]
+        tmp.cgind = fh["cgind"]
+        tmp.coset1 = fh["coset1"]
+        tmp.coset2 = fh["coset2"]
+        tmp.gamma1 = fh["gamma1"]
+        tmp.gamma2 = fh["gamma2"]
+        del fh
         return tmp
 
     def save(self, path=None, filename=None):
@@ -177,6 +178,15 @@ class TOhCG(object):
         self.momenta = [y for y in it.ifilter(lambda x: _abs1(x,self.p), lp3)]
         self.momenta1 = [y for y in it.ifilter(lambda x: _abs1(x,self.p1), lp3)]
         self.momenta2 = [y for y in it.ifilter(lambda x: _abs1(x,self.p2), lp3)]
+        # check allowed momentum combinations
+        self.allmomenta = []
+        for p in self.momenta:
+            for p1 in self.momenta1:
+                for p2 in self.momenta2:
+                    if utils._eq(p1+p2-p):
+                        self.allmomenta.append((p, p1, p2))
+        if not self.allmomenta:
+            raise RuntimeError("no valid momentum combination found")
 
     def sort_momenta(self, g0):
         # check if cosets exists
@@ -221,16 +231,11 @@ class TOhCG(object):
         # generate lists with all allowed momenta combinations and their
         # combined coset+dim indices
         dimcomb = [x for x in it.product(range(self.dim1), range(self.dim2))]
-        self.allmomenta = []
         self.indices = []
-        for p in self.momenta:
-            for p1 in self.momenta1:
-                for p2 in self.momenta2:
-                    if utils._eq(p1+p2-p):
-                        self.allmomenta.append((p, p1, p2))
-                        j1, j2 = self.check_all_cosets(p, p1, p2)
-                        for x in dimcomb:
-                            self.indices.append((j1*self.dim1+x[0], j2*self.dim2+x[1]))
+        for p, p1, p2 in self.allmomenta:
+            j1, j2 = self.check_all_cosets(p, p1, p2)
+            for x in dimcomb:
+                self.indices.append((j1*self.dim1+x[0], j2*self.dim2+x[1]))
 
 
     def gen_ind_reps(self, groups, p0, p, irstr, coset):
@@ -354,6 +359,7 @@ class TOhCG(object):
                         lind.append((mu, mup, mu1, mu2))
                         multi += 1
             if multi > 0:
+                print("%s: %d times" % (ir.name, multi/dim))
                 self.cgnames.append((ir.name, multi/dim, dim))
                 self.cg.append(np.asarray(lcoeffs).copy())
                 self.cgind.append(np.asarray(lind).copy())
