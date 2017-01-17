@@ -699,7 +699,8 @@ class TOh3D(TOhRep):
     def __init__(self, elements):
         TOhRep.__init__(self, 3)
         self.name = "TOh3D"
-        self.mx = gg.genJ1(elements)
+        self.mx = gg.genT1CMF(elements)
+        #self.mx = gg.genJ1(elements)
 
 class TOh4D(TOhRep):
     def __init__(self, elements):

@@ -7,7 +7,7 @@ import group_class
 import utils
 
 class TOhCG(object):
-    def __init__(self, p, p1, p2, groups=None):
+    def __init__(self, p, p1, p2, groups=None, ir1=None, ir2=None):
         """p, p1, and p2 are the magnitudes of the momenta.
         """
         self.prec = 1e-6
@@ -52,15 +52,30 @@ class TOhCG(object):
             self.gamma2 = None
             self.dim1 = 0
             self.dim2 = 0
-            self.irstr1 = ""
-            self.irstr2 = ""
+            self.irstr1 = ir1
+            self.irstr2 = ir2
         else:
-            self.irstr1 = "A1u" if int(p1) in [0,3] else "A2u"
+            if ir1 is None:
+                self.irstr1 = "A1u" if int(p1) in [0,3] else "A2u"
+            else:
+                self.irstr1 = ir1
+            if self.irstr1 not in groups[indp1].irrepsname:
+                raise RuntimeError("irrep %s not in group 1!" % self.irstr1)
+            else:
+                self.dim1 = groups[indp1].irrepsname.index(self.irstr1)
+                self.dim1 = groups[indp1].irrepdim[self.dim1]
             self.gamma1 = self.gen_ind_reps(groups, indp0, indp1, self.irstr1, self.coset1)
-            self.dim1 = 1
-            self.irstr2 = "A1u" if int(p2) in [0,3] else "A2u"
+
+            if ir2 is None:
+                self.irstr2 = "A1u" if int(p2) in [0,3] else "A2u"
+            else:
+                self.irstr2 = ir2
+            if self.irstr2 not in groups[indp2].irrepsname:
+                raise RuntimeError("irrep %s not in group 2!" % self.irstr2)
+            else:
+                self.dim2 = groups[indp2].irrepsname.index(self.irstr2)
+                self.dim2 = groups[indp2].irrepdim[self.dim2]
             self.gamma2 = self.gen_ind_reps(groups, indp0, indp2, self.irstr2, self.coset2)
-            self.dim2 = 1
             self.sort_momenta(groups[indp0])
         #print(self.gamma1[:5])
 
@@ -433,6 +448,27 @@ class TOhCG(object):
                         if count == emptyline:
                             print("")
                             count = 0
+
+    def tables(self):
+        def tostring(data):
+            tmp = ["%+.3f%+.3fj" % (x.real, x.imag) for x in data]
+            tmp = ",".join(tmp)
+            tmp = "".join(("(", tmp, ")"))
+            return tmp
+        # loop over irreps
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            if multi < 1:
+                continue
+            print(" %s ".center(20,"*") % name)
+            # loop over multiplicities
+            for m in range(multi):
+                print("multiplicity %d" % m)
+                select = slice(m, None, multi)
+                data = np.real_if_close(self.cg[i][select])
+                indices = self.cgind[i][select]
+                for d, ind in zip(data, indices):
+                    tmpstr = "%d: %s" % (ind[0], str(d))
+                    print(tmpstr)
 
     def get_cg(self, p1, p2, irrep):
         """Pass the 3-momenta of both particles,
