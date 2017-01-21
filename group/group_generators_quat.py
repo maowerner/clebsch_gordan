@@ -105,10 +105,17 @@ def gen4D(elements, inv=False):
     return res
 
 # special cases
-def compare_quat(elem):
-    for i, q in enumerate(quat.qPar):
-        if elem.comp(q) or elem.comp(np.negative(q)):
-            return i
+def compare_quat(elem, sign=False):
+    if sign:
+        for i, q in enumerate(quat.qPar):
+            if elem.comp(q):
+                return i
+            elif elem.comp(np.negative(q)):
+                return -i
+    else:
+        for i, q in enumerate(quat.qPar):
+            if elem.comp(q) or elem.comp(np.negative(q)):
+                return i
     raise RuntimeError("element not identified: %r" % (elem.str()))
 
 def genEpCMF(elements, inv=False):
@@ -298,6 +305,70 @@ def genT1CMF(elements, inv=False):
         res[i][2,0] = pars[6]*1.j
         res[i][2,1] = pars[7]*1.
         res[i][2,2] = pars[8]*1.
+        if inv:
+            res[i] *= elem.i
+    return res
+
+def genF1CMF(elements, inv=False):
+    res = np.zeros((len(elements), 4, 4), dtype=complex)
+    d = np.exp(2.j*np.pi/24)
+    md = -d
+    dc = d.conj()
+    mdc = -d.conj()
+    _id = 1.j*d
+    mid = -1.j*d
+    idc = 1.j*d.conj()
+    midc = -1.j*d.conj()
+    e = np.exp(2.j*np.pi/ 8)
+    me = -e
+    ec = e.conj()
+    mec = -e.conj()
+    n = np.exp(2.j*np.pi/ 3)
+    mn = -n
+    nc = n.conj()
+    mnc = -n.conj()
+    _in = 1.j*n
+    _min = -1.j*n
+    inc = 1.j*n.conj()
+    minc = -1.j*n.conj()
+    k = -1.j
+    _mat = np.asarray(
+            [[[1.,0.,0.,0.],[0.,1.,0.,0.],[0.,0.,1.,0.],[0.,0.,0.,1.]],
+             [[0., k,0.,0.],[ k,0.,0.,0.],[0.,0.,0., k],[0.,0., k,0.]],
+             [[0.,-1,0.,0.],[1.,0.,0.,0.],[0.,0.,0.,-1],[0.,0.,1.,0.]],
+             [[ k,0.,0.,0.],[0.,1j,0.,0.],[0.,0., k,0.],[0.,0.,0.,1j]],
+             [[idc,dc,0.,0.],[idc,mdc,0.,0.],[0.,0.,md,_id],[0.,0.,md,mid]],
+             [[idc,mdc,0.,0.],[midc,mdc,0.,0.],[0.,0.,md,mid],[0.,0.,d,mid]],
+             [[mdc,idc,0.,0.],[dc,idc,0.,0.],[0.,0.,mid,md],[0.,0.,_id,md]],
+             [[mdc,midc,0.,0.],[mdc,idc,0.,0.],[0.,0.,mid,d],[0.,0.,mid,md]],
+             [[mid,mid,0.,0.],[d,md,0.,0.],[0.,0.,mdc,mdc],[0.,0.,midc,idc]],
+             [[mid,_id,0.,0.],[md,md,0.,0.],[0.,0.,mdc,dc],[0.,0.,idc,idc]],
+             [[md,d,0.,0.],[mid,mid,0.,0.],[0.,0.,idc,midc],[0.,0.,mdc,mdc]],
+             [[md,md,0.,0.],[_id,mid,0.,0.],[0.,0.,idc,idc],[0.,0.,dc,mdc]],
+             [[0.,0.,nc,minc],[0.,0.,minc,nc],[n,_min,0.,0.],[_min,n,0.,0.]],
+             [[0.,0.,n,mn],[0.,0.,n,n],[nc,mnc,0.,0.],[nc,nc,0.,0.]],
+             [[0.,0.,ec,0.],[0.,0.,0.,e],[ec,0.,0.,0.],[0.,e,0.,0.]],
+             [[0.,0.,nc,inc],[0.,0.,inc,nc],[n,_in,0.,0.],[_in,n,0.,0.]],
+             [[0.,0.,n,n],[0.,0.,mn,n],[nc,nc,0.,0.],[mnc,nc,0.,0.]],
+             [[0.,0.,e,0.],[0.,0.,0.,ec],[e,0.,0.,0.],[0.,ec,0.,0.]],
+             [[0.,0.,0.,me],[0.,0.,ec,0.],[0.,me,0.,0.],[ec,0.,0.,0.]],
+             [[0.,0.,0.,mec],[0.,0.,e,0.],[0.,mec,0.,0.],[e,0.,0.,0.]],
+             [[0.,0.,_min,_min],[0.,0.,_min,_in],[minc,minc,0.,0.],[minc,inc,0.,0.]],
+             [[0.,0.,inc,nc],[0.,0.,mnc,minc],[_in,n,0.,0.],[mn,_min,0.,0.]],
+             [[0.,0.,_in,_min],[0.,0.,_min,_min],[inc,minc,0.,0.],[minc,minc,0.,0.]],
+             [[0.,0.,minc,nc],[0.,0.,mnc,inc],[_min,n,0.,0.],[mn,_in,0.,0.]]
+             ], dtype=complex)
+    _check = np.asarray([-1.,0.,0.,0.])
+    _r = range(4,14) + [15,16] + range(20,24)
+    for i, elem in enumerate(elements):
+        r = compare_quat(elem, sign=True)
+        if r < 0 or (r == 0 and np.allclose(elem.q,_check)):
+            res[i] = -_mat[-r]
+        else:
+            res[i] = _mat[r]
+
+        if np.abs(r) in _r:
+            res[i] /= np.sqrt(2)
         if inv:
             res[i] *= elem.i
     return res

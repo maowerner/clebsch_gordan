@@ -79,8 +79,9 @@ class TOhCG(object):
             self.sort_momenta(groups[indp0])
         #print(self.gamma1[:5])
 
-        self.calc_cg_new(groups, indp)
-        self.check_cg()
+        self.calc_cg_ha(groups, indp)
+        #self.calc_cg_new(groups, indp)
+        #self.check_cg()
 
     @classmethod
     def read(cls, path=None, filename=None, momenta=(0,0,0), irreps=["A1u","A1u"]):
@@ -309,6 +310,94 @@ class TOhCG(object):
         multi = np.real_if_close(multi/g.order)
         return multi
 
+    def calc_cg_ha(self, groups, p):
+        self.cgnames = []
+        self.cgind = []
+        self.cg = []
+        if groups is None:
+            return
+        g = groups[p]
+        multi = 0
+        dim1 = self.gamma1.shape[1]
+        dim2 = self.gamma2.shape[1]
+        dim12 = dim1*dim2
+        coeff = np.zeros((10, len(self.indices),), dtype=complex)
+        def all_cg(i,j,k,l,m,n):
+            res = 0.
+            for ind in range(g.order):
+                tmp = ir.mx[ind][i,j].conj()
+                look = g.lelements[ind]
+                tmp *= self.gamma1[look, k, l]
+                tmp *= self.gamma2[look, m, n]
+                res += tmp
+            return res
+        for indir, ir in enumerate(g.irreps):
+            #print("next: %s" % ir.name)
+            m1, m2, m3 = None, None, None
+            multi = 0
+            lind = []
+            lcoeffs = []
+            dim = ir.dim
+            # loop over all column index combinations that conserve the COM momentum
+            for mup, (mu1, mu2) in it.product(range(dim), self.indices):
+                cg = all_cg(mup, mup, mu1, mu1, mu2, mu2)
+                if cg < self.prec:
+                    continue
+                cg *= float(dim)/g.order
+                _cg = np.sqrt(cg)
+                m1 = mup
+                m2 = mu1
+                m3 = mu2
+                #print("\n\nfound candidate, multi %d" % multi)
+                #print(m1,m2,m3,_cg)
+                coeff.fill(0.)
+                _check = 0.
+                for mu in range(dim):
+                    for ind, (mu1, mu2) in enumerate(self.indices):
+                        coeff[mu, ind] = all_cg(m1, mu, m2, mu1, m3, mu2)
+                    coeff[mu] *= float(dim)/g.order/_cg
+                    coeff[mu] = coeff[mu].conj()
+                    #print("coefficients for row %d" % mu)
+                    #print(", ".join(["%.3f%+.3fj" % (x.real,x.conj().imag) for x in coeff[mu]]))
+                    if mu == 0 and multi > 0:
+                        #print("checking for orthogonality")
+                        for m in range(multi):
+                            _check = np.absolute(np.vdot(coeff[0], lcoeffs[m][0]))
+                            #print("\nchecking against multi %d: %.2e" % (m, _check))
+                            #print(", ".join(["%.3f%+.3fj" % (x.real,x.conj().imag) for x in coeff[0]]))
+                            #print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in lcoeffs[m][0]]))
+                            if _check > self.prec:
+                                break
+                    if _check > self.prec:
+                        break
+                    print("\ncoefficients for row %d" % mu)
+                    print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in coeff[mu]]))
+                if _check > self.prec:
+                    #print("not suitable, continue")
+                    continue
+
+                #for mu, (ind, (mu1, mu2)) in it.product(range(dim), enumerate(self.indices)):
+                #    coeff[mu,ind] = all_cg(m1, mu, m2, mu1, m3, mu2)
+                #coeff *= float(dim)/g.order
+                #coeff /= _cg
+                #coeff = coeff.conj()
+                #print("normalized")
+                lcoeffs.append(coeff[:dim].copy())
+                lind.append((m1, m2, m3))
+                multi += 1
+                #print("saving multi: %d" % multi)
+
+            if multi > 0:
+                print("saving irrep %s" % ir.name)
+                print(lcoeffs)
+                self.cgnames.append((ir.name, multi, dim))
+                #print(self.cgnames[-1])
+                self.cg.append(np.asarray(lcoeffs).copy())
+                #self.cg.append(coeff[:dim].copy())
+                self.cgind.append(np.asarray(lind).copy())
+        self.cg = np.asarray(self.cg)
+        self.cgind = np.asarray(self.cgind)
+
     def calc_cg_new(self, groups, p):
         self.cgnames = []
         self.cgind = []
@@ -326,8 +415,10 @@ class TOhCG(object):
             multi = 0
             lcoeffs = []
             dim = ir.dim
+            mup = 0
             # loop over all column index combinations that conserve the COM momentum
-            for mup, (mu1, mu2) in it.product(range(dim), self.indices):
+            for mu1, mu2 in self.indices:
+            #for mup, (mu1, mu2) in it.product(range(dim), self.indices):
                 # loop over the row of the final irrep
                 for mu in range(dim):
                     if mu != mup:
@@ -337,8 +428,8 @@ class TOhCG(object):
                     # representations
                     for ind1, (mu1p, mu2p) in enumerate(self.indices):
                         for i in range(g.order):
-                            tmp = ir.mx[i][mu, mu].conj()
-                            #tmp = ir.mx[i][mu, mup].conj()
+                            #tmp = ir.mx[i][mu, mu].conj()
+                            tmp = ir.mx[i][mu, mup].conj()
                             look = g.lelements[i]
                             tmp *= self.gamma1[look, mu1p, mu1]
                             tmp *= self.gamma2[look, mu2p, mu2]
@@ -384,13 +475,15 @@ class TOhCG(object):
     def check_cg(self):
         """Rows of the Clebsch-Gordan coefficients are orthonormal by construction.
         This routine checks the columns of the Clebsch-Gordan coefficients."""
-        if isinstance(self.cg, list):
-            return
+        #if isinstance(self.cg, list):
+        #    return
+        print(self.cg)
         allcgs = []
         for lcg in self.cg:
             for vec in lcg:
                 allcgs.append(vec)
         allcgs = np.asarray(allcgs)
+        print(allcgs)
         ortho = True
         norm = True
         for i, j in it.combinations(range(allcgs.shape[1]), 2):
@@ -460,14 +553,21 @@ class TOhCG(object):
             if multi < 1:
                 continue
             print(" %s ".center(20,"*") % name)
+            #print(self.cg[i])
             # loop over multiplicities
             for m in range(multi):
                 print("multiplicity %d" % m)
-                select = slice(m, None, multi)
-                data = np.real_if_close(self.cg[i][select])
-                indices = self.cgind[i][select]
-                for d, ind in zip(data, indices):
-                    tmpstr = "%d: %s" % (ind[0], str(d))
+                #select = slice(m*dim, (m+1)*dim, None)
+                #select = slice(m, None, multi)
+                data = np.real_if_close(self.cg[i][m])
+                #data = np.real_if_close(self.cg[i][select])
+                #indices = self.cgind[i][m]
+                #indices = self.cgind[i][select]
+                for ind, d in enumerate(data):
+                    tmpstr = ["%.3f%+.3fj" % (x.real, x.imag) for x in d]
+                    tmpstr = ", ".join(tmpstr)
+                    tmpstr = "%d: %s" % (ind, tmpstr)
+                    #tmpstr = "%d: %s" % (ind[0], str(d))
                     print(tmpstr)
 
     def get_cg(self, p1, p2, irrep):

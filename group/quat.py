@@ -123,6 +123,9 @@ class QNew(object):
             res *= self.i
         return res
 
+    def base(self, inv=False):
+        pass
+
     def R(self, j, mp, m):
         """compute transformation matrix element 
          j         j    0   1   2   3

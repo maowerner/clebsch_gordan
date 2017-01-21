@@ -355,6 +355,7 @@ class TOh(object):
                 alldone = self.check_possible_dims()
                 if alldone:
                     break
+        self.print_char_table()
         if not alldone:
             self.find_1D_special()
             alldone = self.check_possible_dims()
@@ -573,7 +574,7 @@ class TOh(object):
             _name = "T" if (naming is None) else naming
         elif dim == 4:
             rep = lambda x=None: TOh4D(self.elements)
-            _name = "G" if (naming is None) else naming
+            _name = "F" if (naming is None) else naming
         elif dim == 1:
             raise RuntimeError("there is a special routine for 1D irreps")
         else:
@@ -583,7 +584,7 @@ class TOh(object):
             print("finding %dD irreps" % dim)
         ir = rep()
         ir.name = "".join([_name, "1g"])
-        check1 = ir.is_representation(self.tmult)
+        check1 = ir.is_representation(self.tmult, verbose=True)
         check2 = self.check_ortho(ir)
         if check1 and check2:
             self.append_irrep(ir)
@@ -706,7 +707,8 @@ class TOh4D(TOhRep):
     def __init__(self, elements):
         TOhRep.__init__(self, 4)
         self.name = "TOh4D"
-        self.mx = gg.genJ3_2(elements)
+        self.mx = gg.genF1CMF(elements)
+        #self.mx = gg.genJ3_2(elements)
 
 class TOh2Dp(TOhRep):
     def __init__(self, elements, pref=None):

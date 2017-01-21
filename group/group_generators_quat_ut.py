@@ -153,17 +153,27 @@ class PrintIrreps(unittest.TestCase):
         self.elementsi = [quat.QNew.create_from_vector(x, -1) for x in quat.qPar]
 
     #def test_gen2D(self):
-    #    res = gg.gen2D(self.elements, inv=True)
+    #    #res = gg.gen2D(self.elements, inv=True)
     #    #res = gg.genJ1_2(self.elements, inv=True)
+    #    res = gg.genEpCMF(self.elements, inv=True)
     #    for r in res:
     #        print(" ")
     #        print(r)
     #    self.assertTrue(True)
 
-    def test_gen3D(self):
+    #def test_gen3D(self):
+    #    #res = gg.gen3D(self.elements, inv=True)
+    #    #res = gg.genJ1(self.elements, inv=True)
+    #    res = gg.genT1CMF(self.elements, inv=True)
+    #    for r in res:
+    #        print(" ")
+    #        print(r)
+    #    self.assertTrue(True)
+
+    def test_gen4D(self):
         #res = gg.gen3D(self.elements, inv=True)
-        #res = gg.genJ1(self.elements, inv=True)
-        res = gg.genT1CMF(self.elements, inv=True)
+        #res = gg.genJ3_2(self.elements, inv=True)
+        res = gg.genF1CMF(self.elements, inv=True)
         for r in res:
             print(" ")
             print(r)
