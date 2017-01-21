@@ -355,7 +355,7 @@ class TOh(object):
                 alldone = self.check_possible_dims()
                 if alldone:
                     break
-        self.print_char_table()
+        #self.print_char_table()
         if not alldone:
             self.find_1D_special()
             alldone = self.check_possible_dims()

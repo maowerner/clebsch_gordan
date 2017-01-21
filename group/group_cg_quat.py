@@ -388,8 +388,8 @@ class TOhCG(object):
                 #print("saving multi: %d" % multi)
 
             if multi > 0:
-                print("saving irrep %s" % ir.name)
-                print(lcoeffs)
+                #print("saving irrep %s" % ir.name)
+                #print(lcoeffs)
                 self.cgnames.append((ir.name, multi, dim))
                 #print(self.cgnames[-1])
                 self.cg.append(np.asarray(lcoeffs).copy())
@@ -465,8 +465,8 @@ class TOhCG(object):
                         lind.append((mu, mup, mu1, mu2))
                         multi += 1
             if multi > 0:
-                print("%s: %d times" % (ir.name, multi/dim))
-                self.cgnames.append((ir.name, multi/dim, dim))
+                print("%s: %d times" % (ir.name, multi))
+                self.cgnames.append((ir.name, multi, dim))
                 self.cg.append(np.asarray(lcoeffs).copy())
                 self.cgind.append(np.asarray(lind).copy())
         self.cg = np.asarray(self.cg)
@@ -590,17 +590,21 @@ class TOhCG(object):
         for i, (name, multi, dim) in enumerate(self.cgnames):
             if irrep != name:
                 continue
-            tmpcg = self.cg[i][:,index]
-            for m in range(multi):
-                select = slice(m, None, multi)
-                cg.append(tmpcg[select])
-            break
+            cg = self.cg[i][:,index]
+            return cg
+            #print(tmpcg.shape)
+            #tmpcg = self.cg[i][:,index]
+            #for m in range(multi):
+            #    select = slice(m, None, multi)
+            #    cg.append(tmpcg[select])
+            #break
+        return None
 
         # if none found, return None
-        if not cg:
-            return None
-        cg = np.asarray(cg)
-        return cg
+        #if not cg:
+        #    return None
+        #cg = np.asarray(cg)
+        #return cg
 
 if __name__ == "__main__":
     print("for checks execute the test script")

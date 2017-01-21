@@ -392,8 +392,8 @@ class TestCG_MF1_one_zero(unittest.TestCase):
 
     def test_get_cg_A2g(self):
         res = self.gc.get_cg(self.p1, self.p0, "A2g")
-        res_theo = np.zeros((3,1), dtype=complex)
-        res_theo[2,0] = 1.
+        res_theo = np.zeros((3,), dtype=complex)
+        res_theo[2] = 1.
         self.assertEqual(res, res_theo)
 
 if __name__ == "__main__":
