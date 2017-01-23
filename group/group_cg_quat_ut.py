@@ -88,7 +88,7 @@ class TestCG_CMF(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(g, self.gc.p)
+        self.gc.calc_cg_ha(g, self.gc.p)
         cgnames = [("A1g", 1, 1)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
@@ -181,7 +181,7 @@ class TestCG_CMF_read(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(g, self.gc.p)
+        self.gc.calc_cg_ha(g, self.gc.p)
         cgnames = [("A1g", 1, 1)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
@@ -281,7 +281,7 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(g, 0)
+        self.gc.calc_cg_ha(g, 0)
         cgnames = [("A1g", 1, 1), ("T1u", 1, 3), ("Ep1g", 1, 2)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
@@ -378,7 +378,7 @@ class TestCG_MF1_one_zero(unittest.TestCase):
     #    self.assertEqual(multi, res_theo)
 
     def test_cg_new(self):
-        self.gc.calc_cg_new(g, 1)
+        self.gc.calc_cg_ha(g, 1)
         cgnames = [("A1u", 1, 1), ("A2g", 3, 1), ("Ep1g", 1, 2)]
         #print(self.gc.cgnames)
         #print(self.gc.cgind)
@@ -392,8 +392,8 @@ class TestCG_MF1_one_zero(unittest.TestCase):
 
     def test_get_cg_A2g(self):
         res = self.gc.get_cg(self.p1, self.p0, "A2g")
-        res_theo = np.zeros((3,), dtype=complex)
-        res_theo[2] = 1.
+        res_theo = np.zeros((3,1), dtype=complex)
+        res_theo[2,0] = 1.
         self.assertEqual(res, res_theo)
 
 if __name__ == "__main__":

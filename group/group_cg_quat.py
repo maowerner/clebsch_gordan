@@ -370,8 +370,8 @@ class TOhCG(object):
                                 break
                     if _check > self.prec:
                         break
-                    print("\ncoefficients for row %d" % mu)
-                    print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in coeff[mu]]))
+                    #print("\ncoefficients for row %d" % mu)
+                    #print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in coeff[mu]]))
                 if _check > self.prec:
                     #print("not suitable, continue")
                     continue
@@ -393,12 +393,33 @@ class TOhCG(object):
                 self.cgnames.append((ir.name, multi, dim))
                 #print(self.cgnames[-1])
                 self.cg.append(np.asarray(lcoeffs).copy())
+                #print(self.cg[-1].shape)
                 #self.cg.append(coeff[:dim].copy())
                 self.cgind.append(np.asarray(lind).copy())
-        self.cg = np.asarray(self.cg)
-        self.cgind = np.asarray(self.cgind)
+        #self.cgind = np.asarray(self.cgind)
+        #print(self.cgind)
+        # for easier storage, save in one big numpy array with
+        # dimensions [irrep index, max mult, max dim, # of coefficients]
+        nirreps = len(self.cg)
+        mmult = max([x.shape[0] for x in self.cg])
+        mdim = max([x.shape[1] for x in self.cg])
+        nc = self.cg[0].shape[2]
+        newcg = np.zeros((nirreps, mmult, mdim, nc), dtype=complex)
+        newind = np.zeros((nirreps, mmult, 3), dtype=int)
+        for iind, _cg in enumerate(self.cg):
+            d = _cg.shape
+            newcg[iind,:d[0],:d[1]] = _cg
+            newind[iind,:d[0]] = self.cgind[iind]
 
-    def calc_cg_new(self, groups, p):
+        self.cg = newcg
+        self.cgind = newind
+        #print("before saving as array")
+        #print(self.cg)
+        #self.cg = np.asarray(self.cg)
+        #print("after saving as array")
+        #print(self.cg)
+
+    def calc_cg_new_(self, groups, p):
         self.cgnames = []
         self.cgind = []
         self.cg = []
@@ -469,7 +490,11 @@ class TOhCG(object):
                 self.cgnames.append((ir.name, multi, dim))
                 self.cg.append(np.asarray(lcoeffs).copy())
                 self.cgind.append(np.asarray(lind).copy())
+        #print("before saving as array")
+        #print(self.cg)
         self.cg = np.asarray(self.cg)
+        #print("after saving as array")
+        #print(self.cg)
         self.cgind = np.asarray(self.cgind)
 
     def check_cg(self):
@@ -477,7 +502,7 @@ class TOhCG(object):
         This routine checks the columns of the Clebsch-Gordan coefficients."""
         #if isinstance(self.cg, list):
         #    return
-        print(self.cg)
+        #print(self.cg)
         allcgs = []
         for lcg in self.cg:
             for vec in lcg:
@@ -525,15 +550,16 @@ class TOhCG(object):
             # loop over multiplicities
             for m in range(multi):
                 print("multiplicity %d" % m)
-                select = slice(m, None, multi)
+                #select = slice(m, None, multi)
                 #select = slice(m*dim, (m+1)*dim)
                 # loop over momenta
                 #print("full vector")
+                #print(self.cg[i][0])
                 #print(self.cg[i][select])
                 for ind, (p, p1, p2) in enumerate(self.allmomenta):
                     #i1, i2 = self.check_all_cosets(p, p1, p2)
                     #ind = i1*dim2 + i2
-                    data = self.cg[i][select,ind]
+                    data = self.cg[i,m,:dim,ind]
                     tmpstr = "%s: %s" % (momtostring([p,p1,p2]), tostring(data))
                     print(tmpstr)
                     if emptyline is not None:
@@ -590,7 +616,8 @@ class TOhCG(object):
         for i, (name, multi, dim) in enumerate(self.cgnames):
             if irrep != name:
                 continue
-            cg = self.cg[i][:,index]
+            print(self.cg.shape)
+            cg = self.cg[i,:multi,:dim,index]
             return cg
             #print(tmpcg.shape)
             #tmpcg = self.cg[i][:,index]
