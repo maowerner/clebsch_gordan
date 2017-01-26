@@ -589,7 +589,7 @@ class TOhCG(object):
                 #data = np.real_if_close(self.cg[i][select])
                 #indices = self.cgind[i][m]
                 #indices = self.cgind[i][select]
-                for ind, d in enumerate(data):
+                for ind, d in enumerate(np.atleast_2d(data[:dim])):
                     tmpstr = ["%.3f%+.3fj" % (x.real, x.imag) for x in d]
                     tmpstr = ", ".join(tmpstr)
                     tmpstr = "%d: %s" % (ind, tmpstr)
