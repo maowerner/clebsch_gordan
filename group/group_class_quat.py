@@ -103,9 +103,22 @@ class TOh(object):
             self.p2 = np.vdot(self.pref, self.pref)
             selected = []
             elem = []
-            for el, num in zip(self.elements, self.lelements):
-                tmp = el.rotation_matrix(self.withinversion).dot(self.pref)
-                c1 = utils._eq(tmp - self.pref)
+            # change reference momentum to T1u basis
+            a = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
+            b = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
+            bpref = np.asarray([(self.pref[0])*b,
+                                 self.pref[2]*a,
+                                (self.pref[1])*b])
+            print("new basis")
+            print(bpref)
+            T1irrep = gg.genT1CMF(self.elements, inv=True)
+            #for el, num in zip(self.elements, self.lelements):
+            for mat, el, num in zip(T1irrep, self.elements, self.lelements):
+                tmp = mat.dot(bpref)
+                #tmp = mat.dot(self.pref)
+                #tmp = el.rotation_matrix(self.withinversion).dot(self.pref)
+                c1 = utils._eq(tmp - bpref)
+                #c1 = utils._eq(tmp - self.pref)
                 if c1:
                     selected.append(num)
                     elem.append(el)

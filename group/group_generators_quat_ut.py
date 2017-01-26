@@ -152,6 +152,13 @@ class PrintIrreps(unittest.TestCase):
         self.elements = [quat.QNew.create_from_vector(x, 1) for x in quat.qPar]
         self.elementsi = [quat.QNew.create_from_vector(x, -1) for x in quat.qPar]
 
+    def test_gen2D_MF1(self):
+        res = gg.genEpMF1(self.elements, inv=True)
+        for r in res:
+            print(" ")
+            print(r)
+        self.assertTrue(True)
+
     #def test_gen2D(self):
     #    #res = gg.gen2D(self.elements, inv=True)
     #    #res = gg.genJ1_2(self.elements, inv=True)
@@ -170,14 +177,14 @@ class PrintIrreps(unittest.TestCase):
     #        print(r)
     #    self.assertTrue(True)
 
-    def test_gen4D(self):
-        #res = gg.gen3D(self.elements, inv=True)
-        #res = gg.genJ3_2(self.elements, inv=True)
-        res = gg.genF1CMF(self.elements, inv=True)
-        for r in res:
-            print(" ")
-            print(r)
-        self.assertTrue(True)
+    #def test_gen4D(self):
+    #    #res = gg.gen3D(self.elements, inv=True)
+    #    #res = gg.genJ3_2(self.elements, inv=True)
+    #    res = gg.genF1CMF(self.elements, inv=True)
+    #    for r in res:
+    #        print(" ")
+    #        print(r)
+    #    self.assertTrue(True)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
