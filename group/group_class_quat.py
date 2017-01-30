@@ -97,18 +97,20 @@ class TOh(object):
             for i, el in enumerate(quat.qPar):
                 self.elements.append(quat.QNew.create_from_vector(-el, -1))
                 self.lelements.append(i+72);
-        self.p2 = 0
-        # select elements when pref is given
-        if self.pref is not None:
+        if self.pref is None:
+            self.p2 = 0
+        else:
             self.p2 = np.vdot(self.pref, self.pref)
+        # select elements when pref is given
+        if self.pref is not None and self.p2 > 1e-6:
             selected = []
             elem = []
             # change reference momentum to T1u basis
             a = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
             b = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
-            bpref = np.asarray([(self.pref[0])*b,
+            bpref = np.asarray([(-1.j*self.pref[0])*b,
                                  self.pref[2]*a,
-                                (self.pref[1])*b])
+                                (-self.pref[1])*b])
             print("new basis")
             print(bpref)
             T1irrep = gg.genT1CMF(self.elements, inv=True)
