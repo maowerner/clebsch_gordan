@@ -7,14 +7,14 @@ import group
 
 def main():
     prefs = [[0.,0.,0.], [0.,0.,1.], [1.,1.,0.], [1.,1.,1.]]
-    prefs = np.asarray(prefs)
+    #prefs = np.asarray(prefs)
     p2max = 4
     jmax = 3
     groups = []
 
     # initialize groups
     for p2 in range(p2max):
-        g = group.TOh(pref=prefs[p2], irreps=True)
+        g = group.TOh(pref=prefs[p2], irreps=False)
         groups.append(g)
         print("p^2 = %d" % p2)
         print(g.irrepsname)

@@ -210,7 +210,7 @@ def genEpMF1(elements, inv=False):
     m1 = np.asarray([[ I, O],
                      [ O, I]], dtype=complex)
     m2 = np.asarray([[-J, O],
-                     [ O,-J]], dtype=complex)
+                     [ O, J]], dtype=complex)
     m3 = np.asarray([[ J, O],
                      [ O,-J]], dtype=complex)
     m4 = np.asarray([[-I, O],
@@ -225,14 +225,14 @@ def genEpMF1(elements, inv=False):
                      [ J, O]], dtype=complex)
     # hard-coded because I don't know which elements
     # of qPar contribute
-    m1list = [x+y*8 for x in [ 0] for y in range(4)]
-    m2list = [x+y*8 for x in [ 3] for y in range(4)]
-    m3list = [x+y*8 for x in [14] for y in range(4)]
-    m4list = [x+y*8 for x in [17] for y in range(4)]
-    m5list = [x+y*8 for x in [ 1] for y in range(4)]
-    m6list = [x+y*8 for x in [ 2] for y in range(4)]
-    m7list = [x+y*8 for x in [18] for y in range(4)]
-    m8list = [x+y*8 for x in [19] for y in range(4)]
+    m1list = [x+y*24 for x in [ 0] for y in range(4)]
+    m2list = [x+y*24 for x in [14] for y in range(4)]
+    m3list = [x+y*24 for x in [17] for y in range(4)]
+    m4list = [x+y*24 for x in [ 3] for y in range(4)]
+    m5list = [x+y*24 for x in [ 1] for y in range(4)]
+    m6list = [x+y*24 for x in [ 2] for y in range(4)]
+    m7list = [x+y*24 for x in [18] for y in range(4)]
+    m8list = [x+y*24 for x in [19] for y in range(4)]
     for i, elem in enumerate(elements):
         r = compare_quat(elem)
         if r in m1list:

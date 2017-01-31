@@ -111,8 +111,8 @@ class TOh(object):
             bpref = np.asarray([(-1.j*self.pref[0])*b,
                                  self.pref[2]*a,
                                 (-self.pref[1])*b])
-            print("new basis")
-            print(bpref)
+            #print("new basis")
+            #print(bpref)
             T1irrep = gg.genT1CMF(self.elements, inv=True)
             #for el, num in zip(self.elements, self.lelements):
             for mat, el, num in zip(T1irrep, self.elements, self.lelements):
@@ -631,7 +631,7 @@ class TOh(object):
             print("finding special %dD irreps" % dim)
         ir = rep()
         ir.name = "".join([_name, "1g"])
-        check1 = ir.is_representation(self.tmult)
+        check1 = ir.is_representation(self.tmult, verbose=True)
         check2 = self.check_ortho(ir)
         if check1 and check2:
             self.append_irrep(ir)
@@ -642,7 +642,7 @@ class TOh(object):
             ir = rep()
             ir.flip_classes(f, self.lclasses)
             ir.name = "".join([_name, s])
-            check1 = ir.is_representation(self.tmult)
+            check1 = ir.is_representation(self.tmult, verbose=True)
             check2 = self.check_ortho(ir)
             if check1 and check2:
                 self.append_irrep(ir)
@@ -684,7 +684,15 @@ class TOhRep(object):
                 mxij = mxi.dot(mxj)
                 if not utils._eq(mxij, mxk):
                     if verbose:
-                        print("elements %d * %d (%r * %r) not the same as %d (%r / %r)" % (i, j, mxi, mxj, tmult[i,j], mxij, mxk))
+                        print("elements %d * %d not the same as %d:" % (i,j, tmult[i,j]))
+                        print("multiplied:")
+                        print(mxi)
+                        print(mxj)
+                        print("result:")
+                        print(mxij)
+                        print("expected:")
+                        print(mxk)
+                        #print("elements %d * %d (%r * %r) not the same as %d (%r / %r)" % (i, j, mxi, mxj, tmult[i,j], mxij, mxk))
                     return False
         return True
 

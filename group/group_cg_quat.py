@@ -212,11 +212,16 @@ class TOhCG(object):
             return
         def check_coset(g0, pref, p, coset):
             res = []
+            # check needs to be done in basis of T1u
+            bp = np.asarray([-1.j*p[0],p[2],-p[1]])
+            T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
             for elem in coset:
                 look = g0.lelements.index(elem)
-                quat = g0.elements[look]
-                rvec = quat.rotation_matrix(True).dot(pref)
-                c1 = utils._eq(rvec, p)
+                rvec = T1irrep.mx[look].dot(pref)
+                #quat = g0.elements[look]
+                #rvec = quat.rotation_matrix(True).dot(pref)
+                #rvec = quat.rotation_matrix(True).dot(pref)
+                c1 = utils._eq(rvec, bp)
                 if c1:
                     res.append(True)
                 else:
@@ -226,15 +231,18 @@ class TOhCG(object):
         # R*p_ref = p
         res1 = []
         res2 = []
+        # transform self.pref1 into basis of T1u
+        bpref = np.asarray([-1.j*self.pref1[0],self.pref1[2],-self.pref1[1]])
         for p1 in self.momenta1:
             for i,c in enumerate(self.coset1):
-                t = check_coset(g0, self.pref1, p1, c)
+                t = check_coset(g0, bpref, p1, c)
                 if np.all(t):
                     res1.append((p1, i))
                     break
+        bpref = np.asarray([-1.j*self.pref2[0],self.pref2[2],-self.pref2[1]])
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
-                t = check_coset(g0, self.pref2, p2, c)
+                t = check_coset(g0, bpref, p2, c)
                 if np.all(t):
                     res2.append((p2, i))
                     break
