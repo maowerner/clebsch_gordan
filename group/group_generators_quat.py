@@ -308,6 +308,9 @@ def genEpMF1_old(elements, inv=False):
     return res
 
 def genT1CMF(elements, inv=False):
+    #U = np.identity(3)
+    s = 1./np.sqrt(2)
+    U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
     res = np.zeros((len(elements), 3, 3), dtype=complex)
     pars = np.zeros((9,), dtype=complex)
     for i, elem in enumerate(elements):
@@ -358,6 +361,7 @@ def genT1CMF(elements, inv=False):
         res[i][2,0] = pars[6]*1.j
         res[i][2,1] = pars[7]*1.
         res[i][2,2] = pars[8]*1.
+        res[i] = U.dot(res[i].dot(U))
         if inv:
             res[i] *= elem.i
     return res

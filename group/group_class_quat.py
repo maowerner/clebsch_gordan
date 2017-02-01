@@ -77,6 +77,9 @@ class TOh(object):
             print("total time: %.2fs" % (clockalle - clockalls))
 
     def select_elements(self):
+        #U = np.identity(3)
+        s = 1./np.sqrt(2)
+        U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
         # self.elements contains the quaternions
         # self.lelements contains the "global" (unique) index of the element,
         # making the elements comparable between different groups
@@ -106,11 +109,8 @@ class TOh(object):
             selected = []
             elem = []
             # change reference momentum to T1u basis
-            a = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
-            b = np.sqrt(3./(4.*np.pi))/np.sqrt(self.p2)
-            bpref = np.asarray([(-1.j*self.pref[0])*b,
-                                 self.pref[2]*a,
-                                (-self.pref[1])*b])
+            bpref = np.asarray([-1.j*self.pref[0], self.pref[2], -self.pref[1]])
+            bpref = U.dot(bpref)
             #print("new basis")
             #print(bpref)
             T1irrep = gg.genT1CMF(self.elements, inv=True)

@@ -205,6 +205,9 @@ class TOhCG(object):
             raise RuntimeError("no valid momentum combination found")
 
     def sort_momenta(self, g0):
+        #U = np.identity(3)
+        s = 1./np.sqrt(2)
+        U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
         # check if cosets exists
         if self.coset1 is None or self.coset2 is None:
             self.smomenta1 = None
@@ -214,6 +217,7 @@ class TOhCG(object):
             res = []
             # check needs to be done in basis of T1u
             bp = np.asarray([-1.j*p[0],p[2],-p[1]])
+            bp = U.dot(bp)
             T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
             for elem in coset:
                 look = g0.lelements.index(elem)
