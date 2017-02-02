@@ -237,6 +237,7 @@ class TOhCG(object):
         res2 = []
         # transform self.pref1 into basis of T1u
         bpref = np.asarray([-1.j*self.pref1[0],self.pref1[2],-self.pref1[1]])
+        bpref = U.dot(bpref)
         for p1 in self.momenta1:
             for i,c in enumerate(self.coset1):
                 t = check_coset(g0, bpref, p1, c)
@@ -244,6 +245,7 @@ class TOhCG(object):
                     res1.append((p1, i))
                     break
         bpref = np.asarray([-1.j*self.pref2[0],self.pref2[2],-self.pref2[1]])
+        bpref = U.dot(bpref)
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
                 t = check_coset(g0, bpref, p2, c)
