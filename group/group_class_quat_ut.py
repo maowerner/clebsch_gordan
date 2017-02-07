@@ -72,7 +72,7 @@ class TestTOhMF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         tmp = np.asarray([0., 0., 1.])
-        self.group = gc.TOh(pref=tmp, debug=2)
+        self.group = gc.TOh(pref=tmp, debug=0)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -144,7 +144,7 @@ class TestTOhMF3(unittest.TestCase):
 
     def test_classes(self):
         self.assertEqual(self.group.nclasses, 6)
-        classdims = np.asarray([1,2,3,1,2,3])
+        classdims = np.asarray([1,2,3,3,1,2])
         self.assertEqual(self.group.cdim, classdims)
         self.assertEqual(self.group.lclasses.shape, (6, 3))
 
@@ -157,12 +157,12 @@ class TestTOhMF3(unittest.TestCase):
         res = self.group.characters_of_SU2(1)
         res_theo = np.ones((6,))
         res_theo[2] *= -1
-        res_theo[5] *= -1
+        res_theo[3] *= -1
         self.assertEqual(res, res_theo)
 
     def test_su2_characters_2(self):
         res = self.group.characters_of_SU2(2)
-        res_theo = np.asarray([2.,1.,0.,-2.,-1.,-0.])
+        res_theo = np.asarray([2.,1.,0.,0.,-2.,-1.])
         self.assertEqual(res, res_theo)
 
 #@unittest.skip("bla")
@@ -186,7 +186,7 @@ class TestTOh_full_MF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.pref = np.asarray([0., 0., 1.])
-        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=2)
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=0)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -220,7 +220,8 @@ class TestTOh_full_MF3(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.pref = np.asarray([1., 1., 1.])
-        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=2)
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, debug=0)
+        self.group.print_char_table()
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -244,7 +245,7 @@ class TestTOh3Dp(unittest.TestCase):
     def test_bla(self):
         ir = gc.TOh3Dp(self.group.elements)
         self.assertTrue(ir.is_representation(self.group.tmult))
-        print(ir.characters(self.group.crep))
+        #print(ir.characters(self.group.crep))
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

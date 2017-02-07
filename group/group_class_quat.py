@@ -10,12 +10,21 @@ import group_generators_quat as gg
 from rotations import mapping
 
 class TOh(object):
-    def __init__(self, pref=None, withinversion=True, debug=0, irreps=False, U2=None, U3=None, U4=None):
+    """Internal everything is done in the symmetrized spherical harmonics base
+    for T1u: (|11>_+, |10>, |11>_-).
+    All momenta given are changed to this basis and then transformed with the
+    matrix U3, if given.
+    """
+    def __init__(self, pref=None, withinversion=True, debug=0, irreps=False,
+            U2=None, U3=None, U4=None, empty=False):
+        if empty:
+            return
         if not withinversion:
             raise RuntimeError("only double cover octahedral group works!")
         self.name = "TO"
-        self.npar = 24 # the parameters of the rotations
-        self.pref = pref
+        self.pref = None if (pref is None) else (
+                np.asarray([-1.j*pref[1], pref[2], -pref[0]]))
+        self.pref_cart = pref
         self.withinversion = withinversion
         self.debug = debug
 
@@ -34,7 +43,7 @@ class TOh(object):
             self.U4 = U4
         
         # set the elements
-        # defines self.elements, self.lelements
+        # defines elements, lelements
         # see comment in select_elements
         clockalls = timer()
         clock1s = timer()
@@ -45,30 +54,26 @@ class TOh(object):
             print("element selection: %.2fs" % (clock1e - clock1s))
 
         # set up multiplication table
-        # defines self.faithful
+        # defines tmult, tmult_global, faithful
         clock1s = timer()
-        self.tmult = np.zeros((self.order, self.order), dtype=int)
-        self.tmult_global = np.zeros((self.order, self.order), dtype=int)
         self.make_mult_table()
         clock1e = timer()
         if debug > 1:
             print("multiplication table: %.2fs" % (clock1e - clock1s))
 
         # set up list with inverse elements
+        # defines linv, linv_global
         clock1s = timer()
-        self.linv = np.zeros((self.order,), dtype=int)
-        self.linv_global = np.zeros((self.order,), dtype=int)
         self.make_inv_list()
         clock1e = timer()
         if debug > 1:
             print("inverse elements: %.2fs" % (clock1e - clock1s))
 
         # determine conjugacy classes
-        # defines self.nclasses, self.cdim, self.crep,
-        # self.cdimmax, self.lclasses
         clock1s = timer()
-        self.tconjugacy = np.zeros_like(self.tmult, dtype=int)
+        # defines tconjugacy
         self.make_conjugacy_relations()
+        # defines nclasses, cdim, crep, lclasses
         self.assign_classes()
         clock1e = timer()
         if debug > 1:
@@ -76,19 +81,26 @@ class TOh(object):
 
         # prepare storage for representations, number of irreps and
         # classes must be the same
-        # use register_irrep for adding
         clock1s = timer()
-        self.irreps = []
-        self.irrepsname = []
-        self.irrepdim = np.zeros((self.nclasses,), dtype=int)
-        self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
         if irreps:
             self.find_irreps()
+        else:
+            self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
         clock1e = timer()
         clockalle = timer()
         if debug > 1:
             print("irrep selection: %.2fs" % (clock1e - clock1s))
             print("total time: %.2fs" % (clockalle - clockalls))
+
+    def save(self):
+        pass
+        # save pref
+        # save debug and withinversion flags
+        # save U matrices
+
+        # save lelements
+
+        # save flip vectors
 
     def select_elements(self):
         # self.elements contains the quaternions
@@ -114,7 +126,7 @@ class TOh(object):
         if self.pref is None:
             self.p2 = 0
         else:
-            self.p2 = np.vdot(self.pref, self.pref)
+            self.p2 = np.vdot(self.pref_cart, self.pref_cart)
         # select elements when pref is given
         if self.pref is not None and self.p2 > 1e-6:
             selected = []
@@ -134,7 +146,7 @@ class TOh(object):
                     elem.append(el)
             if self.debug > 0:
                 print("The group with P_ref = %r has %d elements:" % (
-                        self.pref.__str__(), len(elem)))
+                        self.pref_cart.__str__(), len(elem)))
                 tmpstr = ["%d" % x for x in selected]
                 tmpstr = ", ".join(tmpstr)
                 print("[%s]" % tmpstr)
@@ -142,6 +154,8 @@ class TOh(object):
             self.lelements = selected
 
     def make_mult_table(self):
+        self.tmult = np.zeros((self.order, self.order), dtype=int)
+        self.tmult_global = np.zeros((self.order, self.order), dtype=int)
         for i in range(self.order):
             for j in range(self.order):
                 res = -999
@@ -171,6 +185,8 @@ class TOh(object):
             self.faithful = False
 
     def make_inv_list(self):
+        self.linv = np.zeros((self.order,), dtype=int)
+        self.linv_global = np.zeros((self.order,), dtype=int)
         for i in range(self.order):
             for k in range(self.order):
                 tmp = self.elements[i] * self.elements[k]
@@ -180,15 +196,13 @@ class TOh(object):
                     break
 
     def make_conjugacy_relations(self):
+        self.tconjugacy = np.zeros_like(self.tmult, dtype=int)
         # 2 nested for loops
         for i, j in it.product(range(self.order), repeat=2):
-            #print("indices %d, %d" % (i,j))
             for k in range(self.order):
                 k_inv = self.linv[k]
                 j_k = self.tmult[j,k]
                 k_inv_j_k = self.tmult[k_inv, j_k]
-                #print("k^-1 (%d) * (j (%d) * k (%d)) (%d) = %d (check %d)" % (
-                #        k_inv, j, k, j_k, k_inv_j_k, i))
                 if k_inv_j_k == i:
                     self.tconjugacy[i,j] = 1
                     break
@@ -214,9 +228,9 @@ class TOh(object):
                 self.crep[icls] = j
             else:
                 self.cdim[icls] += 1
-        self.cdimmax = np.max(self.cdim)
+        cdimmax = np.max(self.cdim)
         # sort all elements into the classes
-        self.lclasses = np.ones((self.nclasses, self.cdimmax), dtype=int) * -1
+        self.lclasses = np.ones((self.nclasses, cdimmax), dtype=int) * -1
         for i in range(self.nclasses):
             k = -1
             for j in range(self.order):
@@ -276,7 +290,7 @@ class TOh(object):
         char : ndarray
             The characters of SU(2).
         """
-        omegas = np.asarray([2.*np.arccos(self.elements[x].q[0]) for x in self.crep])
+        omegas = np.asarray([self.elements[x].omega() for x in self.crep])
         _inv = np.asarray([float(self.elements[x].i) for x in self.crep])
         _char = np.zeros_like(omegas)
         if j%2 == 0: # half-integer spin
@@ -313,21 +327,23 @@ class TOh(object):
         multi = np.real_if_close(np.rint(multi/float(self.order)))
         return multi
 
-    def print_mult_table(self):
+    def print_mult_table(self, width=24):
         print("multiplication table\n")
-        n = int(self.order)/int(self.npar)
-        line = "_".center(self.npar*5, "_")
+        n = int(self.order)/width
+        line = "_".center(self.width*5, "_")
         for n1 in range(n):
-            head = ["%2d" % (x+n1*self.npar) for x in range(self.npar)]
+            head = ["%2d" % (x+n1*width) for x in range(width)]
             head = " ".join(head)
             head = "".join(["\n   [", head, "]"])
             for n2 in range(n):
                 print(head)
                 print(line)
-                for i in range(self.npar):
-                    tmpstr = ["%2d" % x for x in self.tmult[i+n2*self.npar,n1*self.npar:(n1+1)*self.npar]]
+                for i in range(width):
+                    ind1 = i+n2*width
+                    ind2 = select(n1*width, (n1+1)*width)
+                    tmpstr = ["%2d" % x for x in self.tmult[ind1,ind2]]
                     tmpstr = " ".join(tmpstr)
-                    tmpstr = "".join(["%2d | [" % (i+n2*self.npar), tmpstr, "]"])
+                    tmpstr = "".join(["%2d | [" % (ind1), tmpstr, "]"])
                     print(tmpstr)
 
     def print_char_table(self):
@@ -359,14 +375,68 @@ class TOh(object):
             tmpstr = ", ".join(tmpstr)
             print("class %2d: %s" % (i, tmpstr))
 
+    def restore_irreps(self):
+        self.irreps = []
+        self.irrepsname = []
+        self.irrepdim = np.zeros((self.nclasses,), dtype=int)
+        self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
+        # needed for check_possible_dims()
+        self.pos = None
+        # create the suffix for each flip vector
+        self.suffixes = []
+        if self.withinversion:
+            self.suffixes.append("1u")
+            char = "g"
+            for i, _ in enumerate(self.flip):
+                self.suffixes.append("%d%s" % (i//2+2, char))
+                if char == "g":
+                    char = "u"
+                else:
+                    char = "g"
+        else:
+            for i, _ in enumerate(self.flip):
+                self.suffixes.append("%d" % (i+1))
+        for d in range(1, 5):
+            self.get_irreps(d)
+            alldone = self.check_possible_dims()
+            if alldone:
+                break
+        if not alldone:
+            for d in range(2, 3):
+                self.get_irreps(d, special=True)
+                alldone = self.check_possible_dims()
+                if alldone:
+                    break
+        if not alldone:
+            # create the suffix for each imaginary flip vector
+            self.suffixes_i = []
+            if self.withinversion:
+                self.suffixes_i.append("1u")
+                char = "g"
+                for i, _ in enumerate(self.flip_i):
+                    self.suffixes_i.append("%d%s" % (i//2+2, char))
+                    if char == "g":
+                        char = "u"
+                    else:
+                        char = "g"
+            else:
+                for i, _ in enumerate(self.flip_i):
+                    self.suffixes_i.append("%d" % (i+1))
+            self.get_irreps_imaginary()
+            alldone = self.check_possible_dims()
+
     def find_irreps(self):
+        self.irreps = []
+        self.irrepsname = []
+        self.irrepdim = np.zeros((self.nclasses,), dtype=int)
+        self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
         # find the possible combinations of irrep dimensions
         self.find_possible_dims()
-        # get 1D irreps
-        self.find_1D()
+        # get flip vectors
+        self.find_flip_vectors()
         alldone = self.check_possible_dims()
         if not alldone:
-            for d in range(2, 5):
+            for d in range(1, 5):
                 self.get_irreps(d)
                 alldone = self.check_possible_dims()
                 if alldone:
@@ -374,13 +444,14 @@ class TOh(object):
         # find special cases, sorted by time needed from fast to slow
         if not alldone:
             for d in range(2, 3):
-                self.get_irreps_special(d)
+                self.get_irreps(d, special=True)
                 alldone = self.check_possible_dims()
                 if alldone:
                     break
         #self.print_char_table()
         if not alldone:
-            self.find_1D_special()
+            self.find_flip_vectors_imaginary()
+            self.get_irreps_imaginary()
             alldone = self.check_possible_dims()
         #self.print_char_table()
         if not alldone:
@@ -433,7 +504,6 @@ class TOh(object):
                 tmp.append(p)
         tmp = np.asarray(tmp, dtype=int)
         if tmp.size == nmax:
-            self.checkdims = tmp
             self.pos = None
         elif tmp.size == 0:
             raise RuntimeError("no possible dimensions found")
@@ -449,63 +519,86 @@ class TOh(object):
         irrep.irid = ind
         self.tchar[ind] = irrep.characters(self.crep)
 
-    def find_1D(self):
-        ir = TOh1D(self.elements)
-        ir.name = "A1g"
-        if ir.is_representation(self.tmult):
-            self.append_irrep(ir)
-        self.flip = np.asarray([x for x in self.flip_reps(ir)], dtype=int)
-        # temporary suffixes
-        self.suffixes = ["%dx"%x for x in range(2,len(self.flip)+2)]
-        # create the correct suffixes
-        tmpu = np.asarray([self.elements[x].i for x in self.crep], dtype=int)
-        for i, f in enumerate(self.flip):
-            if np.allclose(f, tmpu):
-                self.suffixes[i] = "1u"
+    def sort_flip_vectors(self, flips, special=False):
+        """special flag is when flips do not contain the inversion.
+        """
+        _suffixes = ["%d" % n for n,i in enumerate(flips)]
+        _flips = np.asarray(flips)
+        if self.withinversion is False:
+            return _flips, _suffixes
+        # get the inversion flags for the classes
+        inv= np.asarray([self.elements[x].i for x in self.crep], dtype=int)
+        # get the flip that is equal to just the inversion
+        for i, f in enumerate(_flips):
+            if np.allclose(f, inv):
+                _suffixes[i] = "1u"
                 break
-        count = 2
-        for i in range(len(self.suffixes)):
-            if not self.suffixes[i].endswith("x"):
+        if special:
+            count = 1
+        else:
+            count = 2
+        # treat all other flips and pair them using the inversion
+        for i in range(len(_suffixes)):
+            # if already assigned, continue
+            if _suffixes[i].endswith(("g", "u")):
                 continue
-            self.suffixes[i] = "%dg" % count
-            tmpi = tmpu * self.flip[i]
+            # call the found one "g", this is arbitrary
+            _suffixes[i] = "%dg" % count
+            # find the corresponding "u" vector
+            tmpi = inv * _flips[i]
             ind = 0
-            for j, f in enumerate(self.flip):
+            for j, f in enumerate(_flips):
                 if np.allclose(tmpi, f):
                     ind = j
                     break
-            self.suffixes[ind] = "%du" % count
+            # set the name
+            _suffixes[ind] = "%du" % count
+            # increase the number for next iteration
             count += 1
-        # sort the vectors
-        tmp = ["1u"]
+        # set the correct names in the correct order
+        if special:
+            tmp = ["1g"]
+        else:
+            tmp = []
+        tmp.append("1u")
         for i in range(2,count):
             tmp.append("%dg" % i)
             tmp.append("%du" % i)
         tmpf = []
-        for s in tmp:
-            tmpf.append(self.flip[self.suffixes.index(s)])
-        self.flip = np.asarray(tmpf)
-        self.suffixes = tmp
-        for f, s in zip(self.flip, self.suffixes):
-            ir = TOh1D(self.elements)
-            ir.flip_classes(f, self.lclasses)
-            ir.name = "".join(("A", s))
-            if ir.is_representation(self.tmult) and self.check_ortho(ir):
-                self.append_irrep(ir)
+        # sort the vectors
+        try:
+            # If the inversion element (global index 24)
+            # is part of the group, g and u can be identified.
+            # Inversion is in its own class, we need the
+            # class number here.
+            ind = np.nonzero(self.crep == 24)[0][0]
 
-    def find_1D_special(self):
-        ir = TOh1D(self.elements)
-        self.flip_i = [x for x in self.flip_reps_imaginary(ir)]
-        self.suffixes = ["%d"%x for x in range(1,10)] # g/u for even odd
-        #print("possible vectors: %d" % len(self.flip_i))
-        for f, s in zip(self.flip_i, self.suffixes):
-            ir = TOh1D(self.elements)
-            ir.flip_classes(f, self.lclasses)
-            ir.name = "".join(("K", s))
-            if ir.is_representation(self.tmult) and self.check_ortho(ir):
-                self.append_irrep(ir)
+            if special:
+                start = 1
+            else:
+                # we can set the first element directly, it is 
+                # 1u, which corresponds to the inv vector
+                tmpf.append(inv)
+                start = 2
+            for c in range(start, count):
+                f1 = _flips[_suffixes.index("%dg" % c)]
+                f2 = _flips[_suffixes.index("%du" % c)]
+                # if the character of the inversion class is
+                # 1, it is the even (g) representation
+                if np.absolute(f1[ind]-1.) < 1e-6:
+                    tmpf.append(f1)
+                    tmpf.append(f2)
+                else:
+                    tmpf.append(f2)
+                    tmpf.append(f1)
+        except IndexError:
+            for s in tmp:
+                tmpf.append(_flips[_suffixes.index(s)])
+        return np.asarray(tmpf), tmp
 
-    def flip_reps(self, irrep):
+    def find_flip_vectors(self):
+        irrep = TOh1D(self.elements)
+        flips = []
         n = self.nclasses
         mx_backup = irrep.mx.copy()
         # flip classes
@@ -520,9 +613,13 @@ class TOh(object):
                 check2 = irrep.is_representation(self.tmult)
                 irrep.mx = mx_backup.copy()
                 if utils._eq(check1) and check2:
-                    yield fvec.copy()
+                    flips.append(fvec.copy())
+        flips = np.asarray(flips, dtype=int)
+        self.flip, self.suffixes = self.sort_flip_vectors(flips)
 
-    def flip_reps_imaginary(self, irrep):
+    def find_flip_vectors_imaginary(self):
+        irrep = TOh1D(self.elements)
+        flips = []
         def check_index(i1, i2):
             for x in i2:
                 try:
@@ -557,57 +654,60 @@ class TOh(object):
                         # check if some class is in both index arrays
                         # and skip if it is
                         if check_index(ind1, ind2):
-                            #print("skipping %r and %r" % (ind1, ind2))
                             continue
                         # get indices for classes with -1
                         for indm in it.combinations(range(1,n), kt-2*ki):
                             # check if some class is already taken
                             # and skip if it is
                             if check_index(ind1, indm):
-                                #print("skipping %r and %r" % (ind1, ind2))
                                 continue
                             # check if some class is already taken
                             # and skip if it is
                             if check_index(ind2, indm):
-                                #print("skipping %r and %r" % (ind1, ind2))
                                 continue
-                            #print("using %r and %r" % (ind1, ind2))
                             fvec = f_vec(n, ind1, ind2, indm)
                             irrep.flip_classes(fvec, self.lclasses)
-                            #print(irrep.characters(self.crep))
                             check1 = np.sum(irrep.mx)
                             check2 = irrep.is_representation(self.tmult)
                             irrep.mx = mx_backup.copy()
-                            #print("%r, %r, %r: %r, %r" % (ind1, ind2, indm,
-                            #        check1, check2))
                             if utils._eq(check1) and check2:
-                                #print("yield")
                                 count += 1
-                                yield fvec.copy()
+                                flips.append(fvec.copy())
                                 # hard-coded due to long runtime
                                 if count == 4:
                                     return
+        flips = np.asarray(flips, dtype=complex)
+        self.flip_i, self.suffixes_i = self.sort_flip_vectors(flips, special=True)
 
-    def get_irreps(self, dim, naming=None):
-        if dim == 2:
-            rep = lambda x=None: TOh2D(self.elements)
-            _name = "E" if (naming is None) else naming
-        elif dim == 3:
-            rep = lambda x=None: TOh3D(self.elements)
-            _name = "T" if (naming is None) else naming
-        elif dim == 4:
-            rep = lambda x=None: TOh4D(self.elements)
-            _name = "F" if (naming is None) else naming
-        elif dim == 1:
-            raise RuntimeError("there is a special routine for 1D irreps")
+    def get_irreps(self, dim, naming=None, special=False):
+        if special:
+            if dim == 2:
+                rep = lambda x=None: TOh2Dp(self.elements, self.pref_cart)
+                _name = "Ep" if (naming is None) else naming
+            else:
+                return
         else:
-            raise RuntimeError("%dD irreps not implemented" % dim)
+            if dim == 2:
+                rep = lambda x=None: TOh2D(self.elements)
+                _name = "E" if (naming is None) else naming
+            elif dim == 3:
+                rep = lambda x=None: TOh3D(self.elements)
+                _name = "T" if (naming is None) else naming
+            elif dim == 4:
+                rep = lambda x=None: TOh4D(self.elements)
+                _name = "F" if (naming is None) else naming
+            elif dim == 1:
+                rep = lambda x=None: TOh1D(self.elements)
+                _name = "A" if (naming is None) else naming
+                #raise RuntimeError("there is a special routine for 1D irreps")
+            else:
+                raise RuntimeError("%dD irreps not implemented" % dim)
 
         if self.debug > 2:
             print("finding %dD irreps" % dim)
         ir = rep()
         ir.name = "".join([_name, "1g"])
-        check1 = ir.is_representation(self.tmult, verbose=True)
+        check1 = ir.is_representation(self.tmult, verbose=False)
         check2 = self.check_ortho(ir)
         if check1 and check2:
             self.append_irrep(ir)
@@ -626,37 +726,13 @@ class TOh(object):
                 print("Irrep %s is representation (%r) and orthogonal (%r)" % (
                         ir.name, check1, check2))
 
-    def get_irreps_special(self, dim, naming=None):
-        if dim == 2:
-            rep = lambda x=None: TOh2Dp(self.elements, self.pref)
-            _name = "Ep" if (naming is None) else naming
-        elif dim == 1:
-            raise RuntimeError("there is a special routine for 1D irreps")
-        else:
-            raise RuntimeError("%dD irreps not implemented" % dim)
-
-        if self.debug > 2:
-            print("finding special %dD irreps" % dim)
-        ir = rep()
-        ir.name = "".join([_name, "1g"])
-        check1 = ir.is_representation(self.tmult, verbose=True)
-        check2 = self.check_ortho(ir)
-        if check1 and check2:
-            self.append_irrep(ir)
-        if self.debug > 2:
-            print("Irrep %s is representation (%r) and orthogonal (%r)" % (
-                    ir.name, check1, check2))
-        for f, s in zip(self.flip, self.suffixes):
-            ir = rep()
+    def get_irreps_imaginary(self):
+        for f, s in zip(self.flip_i, self.suffixes_i):
+            ir = TOh1D(self.elements)
             ir.flip_classes(f, self.lclasses)
-            ir.name = "".join([_name, s])
-            check1 = ir.is_representation(self.tmult, verbose=True)
-            check2 = self.check_ortho(ir)
-            if check1 and check2:
+            ir.name = "".join(("K", s))
+            if ir.is_representation(self.tmult) and self.check_ortho(ir):
                 self.append_irrep(ir)
-            if self.debug > 2:
-                print("Irrep %s is representation (%r) and orthogonal (%r)" % (
-                        ir.name, check1, check2))
 
 class TOhRep(object):
     def __init__(self, dimension):

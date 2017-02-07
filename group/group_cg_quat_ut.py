@@ -10,7 +10,7 @@ import group_cg_quat as gcg
 
 g = [gc.TOh(irreps=True), gc.TOh(pref=np.asarray([0., 0., 1.]), irreps=True)]
 
-#@unittest.skip("skip CMF")
+@unittest.skip("skip CMF")
 class TestCG_CMF(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -100,7 +100,7 @@ class TestCG_CMF(unittest.TestCase):
         res_theo = np.ones((1,), dtype=complex)
         self.assertEqual(res, res_theo)
 
-#@unittest.skip("skip CMF reread test")
+@unittest.skip("skip CMF reread test")
 class TestCG_CMF_read(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -201,6 +201,7 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         self.p1 = np.asarray([0., 0., 1.])
         #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
         self.gc = gcg.TOhCG(0, 1, 1, groups=g)
+        #self.gc = gcg.TOhCG(0, 1, 1, groups=None)
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -288,7 +289,7 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
-#@unittest.skip("skip MF1")
+@unittest.skip("skip MF1")
 class TestCG_MF1_one_zero(unittest.TestCase):
     @classmethod
     def setUpClass(self):

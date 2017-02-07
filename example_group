@@ -10,7 +10,7 @@ def main():
 
     print(" CMF ".center(50, "*"))
     #g = group.TOh(irreps=False)
-    g = group.TOh(irreps=True)
+    g = group.TOh(irreps=True, debug=2)
     #for gi in g.irreps:
     #    print(" %s ".center(20, "*") % (g.name))
     #    gi.characters()
