@@ -190,6 +190,9 @@ class QNew(object):
                 mp = j - imp
                 res[im, imp] = self.R(multi, int(2*m+1), int(2*mp+1))
         return res
+    
+    def omega(self):
+        return 2*np.arccos(self.q[0])
 
 if __name__ == "__main__":
     print("for checks execute the test script")

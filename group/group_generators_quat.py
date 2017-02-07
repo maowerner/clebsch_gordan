@@ -11,7 +11,7 @@ _pmatrix = np.asarray(
          [[0., -1.j], [1.j, 0.]],
          [[1., 0.], [0., -1.]]], dtype=complex)
 
-def genJ0(elements, inv=False):
+def genJ0(elements, inv=False, U=None):
     res = np.zeros((len(elements), 1, 1), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -21,7 +21,7 @@ def genJ0(elements, inv=False):
             res[i] = el.R_matrix(0)
     return res
 
-def genJ1_2(elements, inv=False):
+def genJ1_2(elements, inv=False, U=None):
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -31,7 +31,7 @@ def genJ1_2(elements, inv=False):
             res[i] = el.R_matrix(0.5)
     return res
 
-def genJ1(elements, inv=False):
+def genJ1(elements, inv=False, U=None):
     res = np.zeros((len(elements), 3, 3), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -41,7 +41,7 @@ def genJ1(elements, inv=False):
             res[i] = el.R_matrix(1)
     return res
 
-def genJ3_2(elements, inv=False):
+def genJ3_2(elements, inv=False, U=None):
     res = np.zeros((len(elements), 4, 4), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -51,7 +51,7 @@ def genJ3_2(elements, inv=False):
             res[i] = el.R_matrix(1.5)
     return res
 
-def gen1D(elements, inv=False):
+def gen1D(elements, inv=False, U=None):
     if not inv:
         return np.ones((len(elements), 1, 1), dtype=complex)
     else:
@@ -60,7 +60,7 @@ def gen1D(elements, inv=False):
             res[i] *= el.i
         return res
 
-def gen2D(elements, inv=False):
+def gen2D(elements, inv=False, U=None):
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -78,13 +78,13 @@ def gen2D(elements, inv=False):
             res[i] = tmp.copy()
     return res
 
-def gen3D(elements, inv=False):
+def gen3D(elements, inv=False, U=None):
     res = np.zeros((len(elements), 3, 3), dtype=complex)
     for i, el in enumerate(elements):
         res[i] = el.rotation_matrix(inv)
     return res
 
-def gen4D(elements, inv=False):
+def gen4D(elements, inv=False, U=None):
     res = np.zeros((len(elements), 4, 4), dtype=complex)
     if inv:
         for i, el in enumerate(elements):
@@ -118,7 +118,9 @@ def compare_quat(elem, sign=False):
                 return i
     raise RuntimeError("element not identified: %r" % (elem.str()))
 
-def genEpCMF(elements, inv=False):
+def genEpCMF(elements, inv=False, U=None):
+    if U is None:
+        U = np.identity(2)
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     I  = complex( 1.0, 0.0 )
     O  = complex( 0.0, 0.0 )
@@ -158,9 +160,12 @@ def genEpCMF(elements, inv=False):
             res[i] = m6
         else:
             raise RuntimeError("element not identified")
+        res[i] = U.dot(res[i].dot(U))
     return res
 
-def genEpCMF_old(elements, inv=False):
+def genEpCMF_old(elements, inv=False, U=None):
+    if U is None:
+        U = np.identity(2)
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     E  = complex( 0.5*np.sqrt(3.0), 0.0 )
     H  = complex( 0.5, 0.0 )
@@ -202,7 +207,9 @@ def genEpCMF_old(elements, inv=False):
             raise RuntimeError("element not identified")
     return res
 
-def genEpMF1(elements, inv=False):
+def genEpMF1(elements, inv=False, U=None):
+    if U is None:
+        U = np.identity(2)
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     O  = complex(  0.0, 0.0 )
     I  = complex(  1.0, 0.0 )
@@ -253,9 +260,12 @@ def genEpMF1(elements, inv=False):
             res[i] = m8
         else:
             print("what to do with %d" % r)
+        res[i] = U.dot(res[i].dot(U))
     return res
 
 def genEpMF1_old(elements, inv=False):
+    if U is None:
+        U = np.identity(2)
     res = np.zeros((len(elements), 2, 2), dtype=complex)
     O  = complex(  0.0, 0.0 )
     I  = complex(  1.0, 0.0 )
@@ -305,12 +315,13 @@ def genEpMF1_old(elements, inv=False):
             res[i] = m8
         else:
             print("what to do with %d" % i)
+        res[i] = U.dot(res[i].dot(U))
     return res
 
-def genT1CMF(elements, inv=False):
-    #U = np.identity(3)
+def genT1CMF(elements, inv=False, U=None):
+    if U is None:
+        U = np.identity(3)
     s = 1./np.sqrt(2)
-    U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
     res = np.zeros((len(elements), 3, 3), dtype=complex)
     pars = np.zeros((9,), dtype=complex)
     for i, elem in enumerate(elements):
@@ -366,7 +377,9 @@ def genT1CMF(elements, inv=False):
             res[i] *= elem.i
     return res
 
-def genF1CMF(elements, inv=False):
+def genF1CMF(elements, inv=False, U=None):
+    if U is None:
+        U = np.identity(4)
     res = np.zeros((len(elements), 4, 4), dtype=complex)
     d = np.exp(2.j*np.pi/24)
     md = -d
@@ -426,6 +439,7 @@ def genF1CMF(elements, inv=False):
 
         if np.abs(r) in _r:
             res[i] /= np.sqrt(2)
+        res[i] = U.dot(res[i].dot(U))
         if inv:
             res[i] *= elem.i
     return res

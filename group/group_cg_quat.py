@@ -17,6 +17,7 @@ class TOhCG(object):
         self.p1 = p1
         self.p2 = p2
         indp0, indp1, indp2, indp = None, None, None, None
+        self.U0, self.U1, self.U2, self.U = None, None, None, None
         if groups is not None:
             pindex = [x.p2 for x in groups]
             try:
@@ -26,6 +27,10 @@ class TOhCG(object):
                 indp2 = pindex.index(p2)
             except IndexError:
                 raise RuntimeError("no group with P^2 = %d (%d, %d) found" % (p, p1, p2))
+            self.U0 = groups[indp0].U3
+            self.U = groups[indp].U3
+            self.U1 = groups[indp1].U3
+            self.U2 = groups[indp2].U3
         # lookup table for reference momenta
         lpref = [np.asarray([0.,0.,0.]), np.asarray([0.,0.,1.]), 
                  np.asarray([1.,1.,0.]), np.asarray([1.,1.,1.])]
@@ -113,6 +118,11 @@ class TOhCG(object):
         tmp.coset2 = fh["coset2"]
         tmp.gamma1 = fh["gamma1"]
         tmp.gamma2 = fh["gamma2"]
+        Umat = fh["Umat"]
+        tmp.U0 = Umat[0]
+        tmp.U = Umat[1]
+        tmp.U1 = Umat[2]
+        tmp.U2 = Umat[3]
         del fh
         return tmp
 
@@ -138,9 +148,11 @@ class TOhCG(object):
         for cgn in self.cgnames:
             params.append(cgn)
         params = np.asarray(params, dtype=object)
+        Umat = np.asarray([self.U0, self.U, self.U1, self.U2])
         np.savez(_name, params=params, cg=self.cg, cgind=self.cgind,
                 gamma1=self.gamma1, gamma2=self.gamma2,
-                coset1=self.coset1, coset2=self.coset2)
+                coset1=self.coset1, coset2=self.coset2,
+                Umat=Umat)
 
     def gen_coset(self, groups, p0, p):
         """Cosets contain the numbers of the rotation objects
@@ -205,9 +217,6 @@ class TOhCG(object):
             raise RuntimeError("no valid momentum combination found")
 
     def sort_momenta(self, g0):
-        #U = np.identity(3)
-        s = 1./np.sqrt(2)
-        U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
         # check if cosets exists
         if self.coset1 is None or self.coset2 is None:
             self.smomenta1 = None
@@ -216,15 +225,11 @@ class TOhCG(object):
         def check_coset(g0, pref, p, coset):
             res = []
             # check needs to be done in basis of T1u
-            bp = np.asarray([-1.j*p[0],p[2],-p[1]])
-            bp = U.dot(bp)
+            bp = self.U0.dot(p)
             T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
             for elem in coset:
                 look = g0.lelements.index(elem)
                 rvec = T1irrep.mx[look].dot(pref)
-                #quat = g0.elements[look]
-                #rvec = quat.rotation_matrix(True).dot(pref)
-                #rvec = quat.rotation_matrix(True).dot(pref)
                 c1 = utils._eq(rvec, bp)
                 if c1:
                     res.append(True)
@@ -235,17 +240,14 @@ class TOhCG(object):
         # R*p_ref = p
         res1 = []
         res2 = []
-        # transform self.pref1 into basis of T1u
-        bpref = np.asarray([-1.j*self.pref1[0],self.pref1[2],-self.pref1[1]])
-        bpref = U.dot(bpref)
+        bpref = self.U0.dot(self.pref1)
         for p1 in self.momenta1:
             for i,c in enumerate(self.coset1):
                 t = check_coset(g0, bpref, p1, c)
                 if np.all(t):
                     res1.append((p1, i))
                     break
-        bpref = np.asarray([-1.j*self.pref2[0],self.pref2[2],-self.pref2[1]])
-        bpref = U.dot(bpref)
+        bpref = self.U0.dot(self.pref1)
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
                 t = check_coset(g0, bpref, p2, c)
@@ -346,7 +348,6 @@ class TOhCG(object):
                 res += tmp
             return res
         for indir, ir in enumerate(g.irreps):
-            #print("next: %s" % ir.name)
             m1, m2, m3 = None, None, None
             multi = 0
             lind = []
@@ -362,8 +363,6 @@ class TOhCG(object):
                 m1 = mup
                 m2 = mu1
                 m3 = mu2
-                #print("\n\nfound candidate, multi %d" % multi)
-                #print(m1,m2,m3,_cg)
                 coeff.fill(0.)
                 _check = 0.
                 for mu in range(dim):
@@ -371,47 +370,24 @@ class TOhCG(object):
                         coeff[mu, ind] = all_cg(m1, mu, m2, mu1, m3, mu2)
                     coeff[mu] *= float(dim)/g.order/_cg
                     coeff[mu] = coeff[mu].conj()
-                    #print("coefficients for row %d" % mu)
-                    #print(", ".join(["%.3f%+.3fj" % (x.real,x.conj().imag) for x in coeff[mu]]))
                     if mu == 0 and multi > 0:
                         #print("checking for orthogonality")
                         for m in range(multi):
                             _check = np.absolute(np.vdot(coeff[0], lcoeffs[m][0]))
-                            #print("\nchecking against multi %d: %.2e" % (m, _check))
-                            #print(", ".join(["%.3f%+.3fj" % (x.real,x.conj().imag) for x in coeff[0]]))
-                            #print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in lcoeffs[m][0]]))
                             if _check > self.prec:
                                 break
                     if _check > self.prec:
                         break
-                    #print("\ncoefficients for row %d" % mu)
-                    #print(", ".join(["%.3f%+.3fj" % (x.real,x.imag) for x in coeff[mu]]))
                 if _check > self.prec:
-                    #print("not suitable, continue")
                     continue
-
-                #for mu, (ind, (mu1, mu2)) in it.product(range(dim), enumerate(self.indices)):
-                #    coeff[mu,ind] = all_cg(m1, mu, m2, mu1, m3, mu2)
-                #coeff *= float(dim)/g.order
-                #coeff /= _cg
-                #coeff = coeff.conj()
-                #print("normalized")
                 lcoeffs.append(coeff[:dim].copy())
                 lind.append((m1, m2, m3))
                 multi += 1
-                #print("saving multi: %d" % multi)
 
             if multi > 0:
-                #print("saving irrep %s" % ir.name)
-                #print(lcoeffs)
                 self.cgnames.append((ir.name, multi, dim))
-                #print(self.cgnames[-1])
                 self.cg.append(np.asarray(lcoeffs).copy())
-                #print(self.cg[-1].shape)
-                #self.cg.append(coeff[:dim].copy())
                 self.cgind.append(np.asarray(lind).copy())
-        #self.cgind = np.asarray(self.cgind)
-        #print(self.cgind)
         # for easier storage, save in one big numpy array with
         # dimensions [irrep index, max mult, max dim, # of coefficients]
         nirreps = len(self.cg)
@@ -427,11 +403,6 @@ class TOhCG(object):
 
         self.cg = newcg
         self.cgind = newind
-        #print("before saving as array")
-        #print(self.cg)
-        #self.cg = np.asarray(self.cg)
-        #print("after saving as array")
-        #print(self.cg)
 
     def calc_cg_new_(self, groups, p):
         self.cgnames = []
@@ -564,15 +535,7 @@ class TOhCG(object):
             # loop over multiplicities
             for m in range(multi):
                 print("multiplicity %d" % m)
-                #select = slice(m, None, multi)
-                #select = slice(m*dim, (m+1)*dim)
-                # loop over momenta
-                #print("full vector")
-                #print(self.cg[i][0])
-                #print(self.cg[i][select])
                 for ind, (p, p1, p2) in enumerate(self.allmomenta):
-                    #i1, i2 = self.check_all_cosets(p, p1, p2)
-                    #ind = i1*dim2 + i2
                     data = self.cg[i,m,:dim,ind]
                     tmpstr = "%s: %s" % (momtostring([p,p1,p2]), tostring(data))
                     print(tmpstr)
@@ -593,21 +556,14 @@ class TOhCG(object):
             if multi < 1:
                 continue
             print(" %s ".center(20,"*") % name)
-            #print(self.cg[i])
             # loop over multiplicities
             for m in range(multi):
                 print("multiplicity %d" % m)
-                #select = slice(m*dim, (m+1)*dim, None)
-                #select = slice(m, None, multi)
                 data = np.real_if_close(self.cg[i][m])
-                #data = np.real_if_close(self.cg[i][select])
-                #indices = self.cgind[i][m]
-                #indices = self.cgind[i][select]
                 for ind, d in enumerate(np.atleast_2d(data[:dim])):
                     tmpstr = ["%.3f%+.3fj" % (x.real, x.imag) for x in d]
                     tmpstr = ", ".join(tmpstr)
                     tmpstr = "%d: %s" % (ind, tmpstr)
-                    #tmpstr = "%d: %s" % (ind[0], str(d))
                     print(tmpstr)
 
     def get_cg(self, p1, p2, irrep):
@@ -623,7 +579,7 @@ class TOhCG(object):
                 break
         # if momentum not allowed, return None
         if index is None:
-            print("Momentum not present!")
+            #print("Momentum not present!")
             return None
 
         # get coefficients
@@ -633,19 +589,7 @@ class TOhCG(object):
             print(self.cg.shape)
             cg = self.cg[i,:multi,:dim,index]
             return cg
-            #print(tmpcg.shape)
-            #tmpcg = self.cg[i][:,index]
-            #for m in range(multi):
-            #    select = slice(m, None, multi)
-            #    cg.append(tmpcg[select])
-            #break
         return None
-
-        # if none found, return None
-        #if not cg:
-        #    return None
-        #cg = np.asarray(cg)
-        #return cg
 
 if __name__ == "__main__":
     print("for checks execute the test script")

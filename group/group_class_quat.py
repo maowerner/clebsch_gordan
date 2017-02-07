@@ -10,7 +10,7 @@ import group_generators_quat as gg
 from rotations import mapping
 
 class TOh(object):
-    def __init__(self, pref=None, withinversion=True, debug=0, irreps=False):
+    def __init__(self, pref=None, withinversion=True, debug=0, irreps=False, U2=None, U3=None, U4=None):
         if not withinversion:
             raise RuntimeError("only double cover octahedral group works!")
         self.name = "TO"
@@ -18,6 +18,20 @@ class TOh(object):
         self.pref = pref
         self.withinversion = withinversion
         self.debug = debug
+
+        # basis transformation matrices
+        if U2 is None:
+            self.U2 = np.identity(2)
+        else:
+            self.U2 = U2
+        if U3 is None:
+            self.U3 = np.identity(3)
+        else:
+            self.U3 = U3
+        if U4 is None:
+            self.U4 = np.identity(4)
+        else:
+            self.U4 = U4
         
         # set the elements
         # defines self.elements, self.lelements
@@ -77,9 +91,6 @@ class TOh(object):
             print("total time: %.2fs" % (clockalle - clockalls))
 
     def select_elements(self):
-        #U = np.identity(3)
-        s = 1./np.sqrt(2)
-        U = np.asarray([[s,0.,s],[0.,1.,0.],[s,0.,-s]])
         # self.elements contains the quaternions
         # self.lelements contains the "global" (unique) index of the element,
         # making the elements comparable between different groups
@@ -109,11 +120,8 @@ class TOh(object):
             selected = []
             elem = []
             # change reference momentum to T1u basis
-            bpref = np.asarray([-1.j*self.pref[0], self.pref[2], -self.pref[1]])
-            bpref = U.dot(bpref)
-            #print("new basis")
-            #print(bpref)
-            T1irrep = gg.genT1CMF(self.elements, inv=True)
+            bpref = self.U3.dot(self.pref)
+            T1irrep = gg.genT1CMF(self.elements, inv=True, U=self.U3)
             #for el, num in zip(self.elements, self.lelements):
             for mat, el, num in zip(T1irrep, self.elements, self.lelements):
                 tmp = mat.dot(bpref)
@@ -708,48 +716,48 @@ class TOhRep(object):
                 self.mx[el] *= v
 
 class TOh1D(TOhRep):
-    def __init__(self, elements):
+    def __init__(self, elements, U=None):
         TOhRep.__init__(self, 1)
         self.name = "TOh1D"
-        self.mx = gg.genJ0(elements)
+        self.mx = gg.genJ0(elements, U=U)
 
 class TOh2D(TOhRep):
-    def __init__(self, elements):
+    def __init__(self, elements, U=None):
         TOhRep.__init__(self, 2)
         self.name = "TOh2D"
-        self.mx = gg.genJ1_2(elements)
+        self.mx = gg.genJ1_2(elements, U=U)
 
 class TOh3D(TOhRep):
-    def __init__(self, elements):
+    def __init__(self, elements, U=None):
         TOhRep.__init__(self, 3)
         self.name = "TOh3D"
-        self.mx = gg.genT1CMF(elements)
+        self.mx = gg.genT1CMF(elements, U=U)
         #self.mx = gg.genJ1(elements)
 
 class TOh4D(TOhRep):
-    def __init__(self, elements):
+    def __init__(self, elements, U=None):
         TOhRep.__init__(self, 4)
         self.name = "TOh4D"
-        self.mx = gg.genF1CMF(elements)
+        self.mx = gg.genF1CMF(elements, U=U)
         #self.mx = gg.genJ3_2(elements)
 
 class TOh2Dp(TOhRep):
-    def __init__(self, elements, pref=None):
+    def __init__(self, elements, pref=None, U=None):
         TOhRep.__init__(self, 2)
         self.name = "TOh2Dp"
         p2 = 0 if (pref is None) else np.dot(pref, pref)
         if p2 in [0, 3]:
-            self.mx = gg.genEpCMF(elements)
+            self.mx = gg.genEpCMF(elements, U=U)
         elif p2 == 1:
-            self.mx = gg.genEpMF1(elements)
+            self.mx = gg.genEpMF1(elements, U=U)
         else:
             raise RuntimeError("reference momentum not implemented")
 
 class TOh3Dp(TOhRep):
-    def __init__(self, elements):
+    def __init__(self, elements, U=None):
         TOhRep.__init__(self, 3)
         self.name = "TOh3D"
-        self.mx = gg.gen3D(elements)
+        self.mx = gg.gen3D(elements, U=U)
 
 if __name__ == "__main__":
     print("for checks execute the test script")
