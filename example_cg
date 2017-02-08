@@ -13,7 +13,11 @@ def main():
 
     # initialize groups
     for p2 in range(p2max):
-        g = group.TOh(pref=prefs[p2], irreps=True)
+        try:
+            g = group.TOh.read(p2=p2)
+        except IOError:
+            g = group.TOh(pref=prefs[p2], irreps=True)
+            g.save()
         groups.append(g)
         print("p^2 = %d" % p2)
         print(g.irrepsname)

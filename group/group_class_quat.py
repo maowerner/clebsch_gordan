@@ -1,5 +1,6 @@
 """Class for groups and their representatives based on quaternions."""
 
+import os
 import numpy as np
 import itertools as it
 from timeit import default_timer as timer
@@ -17,8 +18,6 @@ class TOh(object):
     """
     def __init__(self, pref=None, withinversion=True, debug=0, irreps=False,
             U2=None, U3=None, U4=None, empty=False):
-        if empty:
-            return
         if not withinversion:
             raise RuntimeError("only double cover octahedral group works!")
         self.name = "TO"
@@ -41,6 +40,8 @@ class TOh(object):
             self.U4 = np.identity(4)
         else:
             self.U4 = U4
+        if empty:
+            return
         
         # set the elements
         # defines elements, lelements
@@ -92,15 +93,94 @@ class TOh(object):
             print("irrep selection: %.2fs" % (clock1e - clock1s))
             print("total time: %.2fs" % (clockalle - clockalls))
 
-    def save(self):
-        pass
+    @classmethod
+    def read(cls, fname=None, p2=0):
+        if fname is None:
+            _fname = os.path.join("./groups/", "group_%d.npz" % p2)
+        else:
+            _fname = fname
+
+        # read file
+        fh = np.load(_fname)
+        params = fh["params"]
+        tmult = fh["tmult"]
+        tmultg = fh["tmultg"]
+        del fh
+        # extract parameters
+        pref = params[0]
+        debug = params[1]
+        withinv = params[2]
+        U2 = params[3]
+        U3 = params[4]
+        U4 = params[5]
+        el = params[6]
+        lel = params[7]
+        flip = params[8]
+        flipi = params[9]
+
+        # create new class
+        _new = cls(pref=pref, debug=debug, withinversion=withinv,
+                   U2=U2, U3=U3, U4=U4, empty=True)
+        # set parameters not yet set
+        _new.elements = el
+        _new.lelements = lel
+        _new.order = len(el)
+        _new.p2 = 0 if pref is None else np.dot(pref, pref)
+        _new.tmult = tmult
+        _new.tmult_global = tmultg
+        # run the necessary functions
+        _new.make_inv_list()
+        _new.make_conjugacy_relations()
+        _new.assign_classes()
+        # create irreps, if necessary
+        if flipi is not None:
+            _new.flip_i = flipi.copy()
+        if flip is not None:
+            _new.flip = flip.copy()
+            _new.restore_irreps()
+
+        return _new
+
+    def save(self, fname=None):
+        if fname is None:
+            p2 = 0 if self.pref_cart is None else (
+                    np.dot(self.pref_cart, self.pref_cart))
+            _fname = os.path.join("./groups/", "group_%d.npz" % p2)
+        else:
+            _fname = fname
+
+        params = []
         # save pref
         # save debug and withinversion flags
         # save U matrices
-
         # save lelements
-
         # save flip vectors
+        params.append(self.pref_cart)
+        params.append(self.debug)
+        params.append(self.withinversion)
+        params.append(self.U2)
+        params.append(self.U3)
+        params.append(self.U4)
+        params.append(self.elements)
+        params.append(self.lelements)
+        tmp = None
+        try:
+            tmp = self.flip.copy()
+        except AttributeError:
+            pass
+        params.append(tmp)
+        tmp = None
+        try:
+            tmp = self.flip_i.copy()
+        except AttributeError:
+            pass
+        params.append(tmp)
+
+
+        params = np.asarray(params, dtype=object)
+
+        np.savez(_fname, params=params, tmult=self.tmult,
+                 tmultg=self.tmult_global)
 
     def select_elements(self):
         # self.elements contains the quaternions
@@ -387,7 +467,8 @@ class TOh(object):
         if self.withinversion:
             self.suffixes.append("1u")
             char = "g"
-            for i, _ in enumerate(self.flip):
+            # one less, since we already appended one
+            for i, _ in enumerate(self.flip[:-1]):
                 self.suffixes.append("%d%s" % (i//2+2, char))
                 if char == "g":
                     char = "u"
@@ -408,22 +489,24 @@ class TOh(object):
                 if alldone:
                     break
         if not alldone:
-            # create the suffix for each imaginary flip vector
-            self.suffixes_i = []
-            if self.withinversion:
-                self.suffixes_i.append("1u")
-                char = "g"
-                for i, _ in enumerate(self.flip_i):
-                    self.suffixes_i.append("%d%s" % (i//2+2, char))
-                    if char == "g":
-                        char = "u"
-                    else:
-                        char = "g"
-            else:
-                for i, _ in enumerate(self.flip_i):
-                    self.suffixes_i.append("%d" % (i+1))
-            self.get_irreps_imaginary()
-            alldone = self.check_possible_dims()
+            try: # to access self.flip_i
+                # create the suffix for each imaginary flip vector
+                self.suffixes_i = []
+                if self.withinversion:
+                    char = "g"
+                    for i, _ in enumerate(self.flip_i):
+                        self.suffixes_i.append("%d%s" % (i//2+1, char))
+                        if char == "g":
+                            char = "u"
+                        else:
+                            char = "g"
+                else:
+                    for i, _ in enumerate(self.flip_i):
+                        self.suffixes_i.append("%d" % (i+1))
+                self.get_irreps_imaginary()
+                alldone = self.check_possible_dims()
+            except AttributeError:
+                print("could not restore imaginary flips, not all irreps found.")
 
     def find_irreps(self):
         self.irreps = []

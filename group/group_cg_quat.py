@@ -18,6 +18,7 @@ class TOhCG(object):
         self.p2 = p2
         indp0, indp1, indp2, indp = None, None, None, None
         self.U0, self.U1, self.U2, self.U = None, None, None, None
+        self._U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
         if groups is not None:
             pindex = [x.p2 for x in groups]
             try:
@@ -35,9 +36,9 @@ class TOhCG(object):
         lpref = [np.asarray([0.,0.,0.]), np.asarray([0.,0.,1.]), 
                  np.asarray([1.,1.,0.]), np.asarray([1.,1.,1.])]
         # save reference momenta
-        self.pref = lpref[p]
-        self.pref1 = lpref[p1]
-        self.pref2 = lpref[p2]
+        self.pref = self._U.dot(lpref[p])
+        self.pref1 = self._U.dot(lpref[p1])
+        self.pref2 = self._U.dot(lpref[p2])
 
         # get the cosets, always in the maximal group (2O here)
         # returns None if groups is None
@@ -198,14 +199,14 @@ class TOhCG(object):
     def gen_momenta(self):
         pm = 4 # maximum component in each direction
         def _abs(x):
-            return np.dot(x, x) <= pm
+            return np.vdot(x, x) <= pm
         def _abs1(x,a):
-            return np.dot(x, x) == a
+            return np.vdot(x, x) == a
         gen = it.ifilter(_abs, it.product(range(-pm,pm+1), repeat=3))
         lp3 = [np.asarray(y, dtype=int) for y in gen]
-        self.momenta = [y for y in it.ifilter(lambda x: _abs1(x,self.p), lp3)]
-        self.momenta1 = [y for y in it.ifilter(lambda x: _abs1(x,self.p1), lp3)]
-        self.momenta2 = [y for y in it.ifilter(lambda x: _abs1(x,self.p2), lp3)]
+        self.momenta =  [self._U.dot(y) for y in it.ifilter(lambda x: _abs1(x,self.p), lp3)]
+        self.momenta1 = [self._U.dot(y) for y in it.ifilter(lambda x: _abs1(x,self.p1), lp3)]
+        self.momenta2 = [self._U.dot(y) for y in it.ifilter(lambda x: _abs1(x,self.p2), lp3)]
         # check allowed momentum combinations
         self.allmomenta = []
         for p in self.momenta:
@@ -247,7 +248,7 @@ class TOhCG(object):
                 if np.all(t):
                     res1.append((p1, i))
                     break
-        bpref = self.U0.dot(self.pref1)
+        bpref = self.U0.dot(self.pref2)
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
                 t = check_coset(g0, bpref, p2, c)
@@ -586,7 +587,7 @@ class TOhCG(object):
         for i, (name, multi, dim) in enumerate(self.cgnames):
             if irrep != name:
                 continue
-            print(self.cg.shape)
+            #print(self.cg.shape)
             cg = self.cg[i,:multi,:dim,index]
             return cg
         return None
