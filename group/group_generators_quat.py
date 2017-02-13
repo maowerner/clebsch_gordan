@@ -160,7 +160,8 @@ def genEpCMF(elements, inv=False, U=None):
             res[i] = m6
         else:
             raise RuntimeError("element not identified")
-        res[i] = U.dot(res[i].dot(U))
+        #res[i] = U.dot(res[i].dot(U))
+        res[i] = U.dot(res[i].dot(U.conj().T))
     return res
 
 def genEpCMF_old(elements, inv=False, U=None):
@@ -205,6 +206,7 @@ def genEpCMF_old(elements, inv=False, U=None):
             res[i] = m6
         else:
             raise RuntimeError("element not identified")
+        res[i] = U.dot(res[i].dot(U.conj().T))
     return res
 
 def genEpMF1(elements, inv=False, U=None):
@@ -260,7 +262,8 @@ def genEpMF1(elements, inv=False, U=None):
             res[i] = m8
         else:
             print("what to do with %d" % r)
-        res[i] = U.dot(res[i].dot(U))
+        #res[i] = U.dot(res[i].dot(U))
+        res[i] = U.dot(res[i].dot(U.conj().T))
     return res
 
 def genEpMF1_old(elements, inv=False):
@@ -315,7 +318,8 @@ def genEpMF1_old(elements, inv=False):
             res[i] = m8
         else:
             print("what to do with %d" % i)
-        res[i] = U.dot(res[i].dot(U))
+        #res[i] = U.dot(res[i].dot(U))
+        res[i] = U.dot(res[i].dot(U.conj().T))
     return res
 
 def genT1CMF(elements, inv=False, U=None):
@@ -372,7 +376,20 @@ def genT1CMF(elements, inv=False, U=None):
         res[i][2,0] = pars[6]*1.j
         res[i][2,1] = pars[7]*1.
         res[i][2,2] = pars[8]*1.
-        res[i] = U.dot(res[i].dot(U))
+        #if i == 4:
+        #    print("debugging element 4")
+        #    print(res[i])
+        #    print("R*U^\dagger")
+        #    tmp = res[i].dot(U.conj().T)
+        #    print(tmp)
+        #    print("U*R*U^\dagger")
+        #    tmp1 = U.dot(tmp)
+        #    print(tmp1)
+        #    res[i] = tmp1
+        #    print
+        #else:
+        #    res[i] = U.dot(res[i].dot(U))
+        res[i] = U.dot(res[i].dot(U.conj().T))
         if inv:
             res[i] *= elem.i
     return res
@@ -439,7 +456,7 @@ def genF1CMF(elements, inv=False, U=None):
 
         if np.abs(r) in _r:
             res[i] /= np.sqrt(2)
-        res[i] = U.dot(res[i].dot(U))
+        res[i] = U.dot(res[i].dot(U.conj().T))
         if inv:
             res[i] *= elem.i
     return res

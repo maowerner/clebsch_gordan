@@ -191,6 +191,61 @@ class TestTOh_full_CMF(unittest.TestCase):
         self.assertEqual(self.group.crep, g.crep)
 
 #@unittest.skip("bla")
+class TestTOh_full_CMF_transformed(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        S = 1./np.sqrt(2.)
+        self.U = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
+        self.group = gc.TOh(withinversion=True, irreps=True, U3=self.U)
+        self.g1 = gc.TOh(withinversion=True, irreps=True)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_number_irreps(self):
+        self.assertEqual(self.group.nclasses, len(self.group.irreps))
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_restore_irreps(self):
+        tmp_tchar = self.group.tchar.copy()
+        tmp_irdim = self.group.irrepdim.copy()
+        tmp_suff = list(self.group.suffixes)
+        tmp_irnames = list(self.group.irrepsname)
+        self.group.tchar.fill(0.)
+        self.group.restore_irreps()
+        self.assertEqual(self.group.tchar, tmp_tchar)
+        self.assertEqual(self.group.irrepdim, tmp_irdim)
+        self.assertEqual(self.group.suffixes, tmp_suff)
+        self.assertEqual(self.group.irrepsname, tmp_irnames)
+
+    def test_save_and_read(self):
+        self.group.save()
+        g = gc.TOh.read(p2=0)
+        self.assertEqual(self.group.tchar, g.tchar)
+        self.assertEqual(self.group.irrepdim, g.irrepdim)
+        self.assertEqual(self.group.suffixes, g.suffixes)
+        self.assertEqual(self.group.irrepsname, g.irrepsname)
+        self.assertEqual(self.group.tmult, g.tmult)
+        self.assertEqual(self.group.tmult_global, g.tmult_global)
+        self.assertEqual(self.group.flip, g.flip)
+        self.assertEqual(self.group.crep, g.crep)
+
+    def test_T1u_irrep(self):
+        ir1 = self.group.irreps[self.group.irrepsname.index("T1u")]
+        ir2 = self.g1.irreps[self.g1.irrepsname.index("T1u")]
+        self.assertEqual(ir1.mx[0], ir2.mx[0])
+        for i, (m1, m2) in enumerate(zip(ir1.mx[1:], ir2.mx[1:])):
+            try:
+                #self.assertEqual(m1, m2)
+                self.assertEqual(m1, self.U.dot(m2.dot(self.U.conj().T)))
+            except AssertionError:
+                print("element %d" % (i+1))
+                raise
+
+#@unittest.skip("bla")
 class TestTOh_full_MF1(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -230,6 +285,65 @@ class TestTOh_full_MF1(unittest.TestCase):
         self.assertEqual(self.group.tmult_global, g.tmult_global)
         self.assertEqual(self.group.flip, g.flip)
         self.assertEqual(self.group.crep, g.crep)
+
+#@unittest.skip("bla")
+class TestTOh_full_MF1_transformed(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        self.pref = np.asarray([0., 0., 1.])
+        S = 1./np.sqrt(2.)
+        self.U = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
+        self.group = gc.TOh(self.pref, withinversion=True, irreps=True, U3=self.U)
+        self.g1 = gc.TOh(self.pref, withinversion=True, irreps=True)
+
+    def setUp(self):
+        self.addTypeEqualityFunc(np.ndarray, utils.check_array)
+
+    def test_1D_representations(self):
+        ir = gc.TOh1D(self.group.elements)
+        self.assertTrue(ir.is_representation(self.group.tmult, verbose=True))
+
+    def test_number_irreps(self):
+        self.assertEqual(self.group.nclasses, len(self.group.irreps))
+
+    def test_restore_irreps(self):
+        tmp_tchar = self.group.tchar.copy()
+        tmp_irdim = self.group.irrepdim.copy()
+        tmp_suff = list(self.group.suffixes)
+        tmp_irnames = list(self.group.irrepsname)
+        self.group.tchar.fill(0.)
+        self.group.restore_irreps()
+        self.assertEqual(self.group.tchar, tmp_tchar)
+        self.assertEqual(self.group.irrepdim, tmp_irdim)
+        self.assertEqual(self.group.suffixes, tmp_suff)
+        self.assertEqual(self.group.irrepsname, tmp_irnames)
+
+    def test_save_and_read(self):
+        self.group.save()
+        g = gc.TOh.read(p2=1)
+        self.assertEqual(self.group.tchar, g.tchar)
+        self.assertEqual(self.group.irrepdim, g.irrepdim)
+        self.assertEqual(self.group.suffixes, g.suffixes)
+        self.assertEqual(self.group.irrepsname, g.irrepsname)
+        self.assertEqual(self.group.tmult, g.tmult)
+        self.assertEqual(self.group.tmult_global, g.tmult_global)
+        self.assertEqual(self.group.flip, g.flip)
+        self.assertEqual(self.group.crep, g.crep)
+
+    def test_lelements(self):
+        self.assertEqual(self.group.lelements, self.g1.lelements)
+
+    #def test_T1u_irrep(self):
+    #    ir1 = self.group.irreps[self.group.irrepsname.index("T1u")]
+    #    ir2 = self.g1.irreps[self.g1.irrepsname.index("T1u")]
+    #    self.assertEqual(ir1.mx[0], ir2.mx[0])
+    #    for i, (m1, m2) in enumerate(zip(ir1.mx[1:], ir2.mx[1:])):
+    #        try:
+    #            #self.assertEqual(m1, m2)
+    #            self.assertEqual(m1, self.U.dot(m2.dot(self.U.conj().T)))
+    #        except AssertionError:
+    #            print("element %d" % (i+1))
+    #            raise
 
 #@unittest.skip("bla")
 class TestTOh_full_MF2(unittest.TestCase):

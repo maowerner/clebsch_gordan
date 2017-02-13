@@ -765,19 +765,19 @@ class TOh(object):
     def get_irreps(self, dim, naming=None, special=False):
         if special:
             if dim == 2:
-                rep = lambda x=None: TOh2Dp(self.elements, self.pref_cart)
+                rep = lambda x=None: TOh2Dp(self.elements, self.pref_cart, U=self.U2)
                 _name = "Ep" if (naming is None) else naming
             else:
                 return
         else:
             if dim == 2:
-                rep = lambda x=None: TOh2D(self.elements)
+                rep = lambda x=None: TOh2D(self.elements, U=self.U2)
                 _name = "E" if (naming is None) else naming
             elif dim == 3:
-                rep = lambda x=None: TOh3D(self.elements)
+                rep = lambda x=None: TOh3D(self.elements, U=self.U3)
                 _name = "T" if (naming is None) else naming
             elif dim == 4:
-                rep = lambda x=None: TOh4D(self.elements)
+                rep = lambda x=None: TOh4D(self.elements, U=self.U4)
                 _name = "F" if (naming is None) else naming
             elif dim == 1:
                 rep = lambda x=None: TOh1D(self.elements)
