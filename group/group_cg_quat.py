@@ -17,7 +17,7 @@ class TOhCG(object):
         self.p1 = p1
         self.p2 = p2
         indp0, indp1, indp2, indp = None, None, None, None
-        self.U0, self.U1, self.U2, self.U = None, None, None, None
+        self.U0 = None
         self._U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
         if groups is not None:
             pindex = [x.p2 for x in groups]
@@ -29,9 +29,17 @@ class TOhCG(object):
             except IndexError:
                 raise RuntimeError("no group with P^2 = %d (%d, %d) found" % (p, p1, p2))
             self.U0 = groups[indp0].U3
-            self.U = groups[indp].U3
-            self.U1 = groups[indp1].U3
-            self.U2 = groups[indp2].U3
+            self.T0 = groups[indp0].U2
+            if (not utils._eq(self.U0, groups[indp].U3)) or (
+                    not utils._eq(self.T0, groups[indp].U2)):
+                raise RuntimeError("The group projecting to has different basis")
+            if (not utils._eq(self.U0, groups[indp1].U3)) or (
+                    not utils._eq(self.T0, groups[indp1].U2)):
+                raise RuntimeError("The group of op 1 has different basis")
+            if (not utils._eq(self.U0, groups[indp1].U3)) or (
+                    not utils._eq(self.T0, groups[indp1].U2)):
+                raise RuntimeError("The group of op 2 has different basis")
+            self._U = self.U0.dot(self._U)
         # lookup table for reference momenta
         lpref = [np.asarray([0.,0.,0.]), np.asarray([0.,0.,1.]), 
                  np.asarray([1.,1.,0.]), np.asarray([1.,1.,1.])]
@@ -121,9 +129,7 @@ class TOhCG(object):
         tmp.gamma2 = fh["gamma2"]
         Umat = fh["Umat"]
         tmp.U0 = Umat[0]
-        tmp.U = Umat[1]
-        tmp.U1 = Umat[2]
-        tmp.U2 = Umat[3]
+        tmp._U = Umat[1]
         del fh
         return tmp
 
@@ -149,7 +155,7 @@ class TOhCG(object):
         for cgn in self.cgnames:
             params.append(cgn)
         params = np.asarray(params, dtype=object)
-        Umat = np.asarray([self.U0, self.U, self.U1, self.U2])
+        Umat = np.asarray([self.U0, self._U])
         np.savez(_name, params=params, cg=self.cg, cgind=self.cgind,
                 gamma1=self.gamma1, gamma2=self.gamma2,
                 coset1=self.coset1, coset2=self.coset2,
@@ -226,12 +232,11 @@ class TOhCG(object):
         def check_coset(g0, pref, p, coset):
             res = []
             # check needs to be done in basis of T1u
-            bp = self.U0.dot(p)
             T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
             for elem in coset:
                 look = g0.lelements.index(elem)
                 rvec = T1irrep.mx[look].dot(pref)
-                c1 = utils._eq(rvec, bp)
+                c1 = utils._eq(rvec, p)
                 if c1:
                     res.append(True)
                 else:
@@ -241,17 +246,15 @@ class TOhCG(object):
         # R*p_ref = p
         res1 = []
         res2 = []
-        bpref = self.U0.dot(self.pref1)
         for p1 in self.momenta1:
             for i,c in enumerate(self.coset1):
-                t = check_coset(g0, bpref, p1, c)
+                t = check_coset(g0, self.pref1, p1, c)
                 if np.all(t):
                     res1.append((p1, i))
                     break
-        bpref = self.U0.dot(self.pref2)
         for p2 in self.momenta2:
             for i,c in enumerate(self.coset2):
-                t = check_coset(g0, bpref, p2, c)
+                t = check_coset(g0, self.pref2, p2, c)
                 if np.all(t):
                     res2.append((p2, i))
                     break
@@ -567,17 +570,29 @@ class TOhCG(object):
                     tmpstr = "%d: %s" % (ind, tmpstr)
                     print(tmpstr)
 
-    def get_cg(self, p1, p2, irrep):
+    def get_cg(self, p1, p2, irrep, change_basis=True):
         """Pass the 3-momenta of both particles,
         check for correct order of momenta.
         """
+        # change the basis to the one used
+        if change_basis:
+            _p1 = self._U.dot(p1)
+            _p2 = self._U.dot(p2)
+        else:
+            _p1 = np.asarray(p1)
+            _p2 = np.asarray(p2)
         cg = []
         index = None
         # select correct momentum
         for ind, (p, k1, k2) in enumerate(self.allmomenta):
-            if utils._eq(k1, p1) and utils._eq(k2, p2):
+            if utils._eq(k1, _p1) and utils._eq(k2, _p2):
                 index = ind
                 break
+        # select correct momentum
+        #for ind, (p, k1, k2) in enumerate(self.allmomenta):
+        #    if utils._eq(k1, p1) and utils._eq(k2, p2):
+        #        index = ind
+        #        break
         # if momentum not allowed, return None
         if index is None:
             #print("Momentum not present!")

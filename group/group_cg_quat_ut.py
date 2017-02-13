@@ -151,14 +151,8 @@ class TestCG_CMF_transformed(unittest.TestCase):
         # transformation matrix
         S = 1./np.sqrt(2.)
         U = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
-        self.assertEqual(self.gct.U, U)
         self.assertEqual(self.gct.U0, U)
-        self.assertEqual(self.gct.U1, U)
-        self.assertEqual(self.gct.U2, U)
-        self.assertFalse(np.allclose(self.gc.U, U))
         self.assertFalse(np.allclose(self.gc.U0, U))
-        self.assertFalse(np.allclose(self.gc.U1, U))
-        self.assertFalse(np.allclose(self.gc.U2, U))
 
     def test_momenta(self):
         # check individual momenta
@@ -333,9 +327,7 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     def setUpClass(self):
         self.p0 = np.asarray([0., 0., 0.])
         self.p1 = np.asarray([0., 0., 1.])
-        #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
         self.gc = gcg.TOhCG(0, 1, 1, groups=g)
-        #self.gc = gcg.TOhCG(0, 1, 1, groups=None)
         self.U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
 
     def setUp(self):
@@ -419,22 +411,19 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     def test_cg_new(self):
         self.gc.calc_cg_ha(g, 0)
         cgnames = [("A1g", 1, 1), ("T1u", 1, 3), ("Ep1g", 1, 2)]
-        #print(self.gc.cgnames)
-        #print(self.gc.cgind)
-        #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
 
 #@unittest.skip("skip CMF, non zero momenta")
-class TestCG_CMF_non_zero_mom(unittest.TestCase):
+class TestCG_CMF_non_zero_mom_transformed(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.p0 = np.asarray([0., 0., 0.])
         self.p1 = np.asarray([0., 0., 1.])
-        #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
-        self.gc = gcg.TOhCG(0, 1, 1, groups=g)
-        #self.gc = gcg.TOhCG(0, 1, 1, groups=None)
-        self.U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
+        self.gc = gcg.TOhCG(0, 1, 1, groups=gt)
+        s = 1./np.sqrt(2.)
+        self.U0 = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
+        self.U = np.asarray([[-s,-1.j*s,0.],[0.,0.,1.],[s,-1.j*s,0.]])
 
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)
@@ -517,9 +506,6 @@ class TestCG_CMF_non_zero_mom(unittest.TestCase):
     def test_cg_new(self):
         self.gc.calc_cg_ha(g, 0)
         cgnames = [("A1g", 1, 1), ("T1u", 1, 3), ("Ep1g", 1, 2)]
-        #print(self.gc.cgnames)
-        #print(self.gc.cgind)
-        #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
 #@unittest.skip("skip MF1")
@@ -529,7 +515,6 @@ class TestCG_MF1_one_zero(unittest.TestCase):
         self.U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
         self.p0 = np.asarray([0., 0., 0.])
         self.p1 = self.U.dot(np.asarray([0., 0., 1.]))
-        #self.g = [gc.TOh(irreps=True), gc.TOh(pref=self.p1, irreps=True)]
         self.gc = gcg.TOhCG(1, 1, 0, groups=g)
 
     def setUp(self):
@@ -620,16 +605,24 @@ class TestCG_MF1_one_zero(unittest.TestCase):
         #print(self.gc.cg)
         self.assertEqual(self.gc.cgnames, cgnames)
 
+    def test_get_cg_A1g(self):
+        res = self.gc.get_cg(self.p1, self.p0, "A1g")
+        self.assertIsNone(res)
+
     def test_get_cg_A1u(self):
         res = self.gc.get_cg(self.p1, self.p0, "A1u")
-        res_theo = np.zeros((1,), dtype=complex)
+        res_theo = np.ones((1,), dtype=complex)*-0.5
         self.assertEqual(res, res_theo)
 
     def test_get_cg_A2g(self):
         res = self.gc.get_cg(self.p1, self.p0, "A2g")
         res_theo = np.zeros((3,1), dtype=complex)
-        res_theo[2,0] = 1.
+        res_theo[0,0] = 0.5
         self.assertEqual(res, res_theo)
+
+    def test_get_cg_A2u(self):
+        res = self.gc.get_cg(self.p1, self.p0, "A2u")
+        self.assertIsNone(res)
 
 if __name__ == "__main__":
     init()
