@@ -524,7 +524,8 @@ class TOhCG(object):
         def momtostring(data):
             tmp = []
             for d in data:
-                tmp.append("[%+d,%+d,%+d]" % (d[0], d[1], d[2]))
+                _d = np.real_if_close((self._U.conj().T).dot(d))
+                tmp.append("[%+.0f,%+.0f,%+.0f]" % (_d[0], _d[1], _d[2]))
             tmpstr = "%s x %s -> %s" % (tmp[1], tmp[2], tmp[0])
             return tmpstr
 

@@ -12,15 +12,20 @@ def main():
     groups = []
 
     # initialize groups
+    S = 1./np.sqrt(2.)
+    U3 = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
+    U2 = np.asarray([[S,S],[1.j*S,-1.j*S]])
     for p2 in range(p2max):
         try:
-            g = group.TOh.read(p2=p2)
+            _g = group.TOh.read(p2=p2)
+            if not np.allclose(_g.U3, U3) or not np.allclose(_g.U2, U2):
+                raise IOError("redo computation")
         except IOError:
-            g = group.TOh(pref=prefs[p2], irreps=True)
-            g.save()
-        groups.append(g)
+            _g = group.TOh(pref=prefs[p2], irreps=True, U3=U3, U2=U2)
+            _g.save()
+        groups.append(_g)
         print("p^2 = %d" % p2)
-        print(g.irrepsname)
+        print(_g.irrepsname)
 
     # calc coefficients
     print(" CMF ".center(40, "="))
