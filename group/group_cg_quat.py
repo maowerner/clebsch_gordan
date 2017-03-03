@@ -341,7 +341,8 @@ class TOhCG(object):
         dim1 = self.gamma1.shape[1]
         dim2 = self.gamma2.shape[1]
         dim12 = dim1*dim2
-        coeff = np.zeros((10, len(self.indices),), dtype=complex)
+        coeff = np.zeros((len(self.indices), len(self.indices)), dtype=complex)
+        # function for looping over all group elements
         def all_cg(i,j,k,l,m,n):
             res = 0.
             for ind in range(g.order):

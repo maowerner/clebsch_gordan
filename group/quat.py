@@ -189,6 +189,8 @@ class QNew(object):
             for imp in range(multi):
                 mp = j - imp
                 res[im, imp] = self.R(multi, int(2*m+1), int(2*mp+1))
+        if j%2:
+            res *= self.i
         return res
     
     def omega(self):
