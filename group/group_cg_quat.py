@@ -609,5 +609,51 @@ class TOhCG(object):
             return cg
         return None
 
+    def print_operators(self):
+        def momtostring(p):
+            _p = np.real_if_close((self._U.conj().T).dot(p))
+            return " (%+1d,%+1d,%+1d)" % (_p[0],_p[1],_p[2])
+        def cgtostring(cg):
+            _n = np.absolute(cg) < self.prec
+            _r = np.absolute(cg.real) < self.prec
+            _i = np.absolute(cg.imag) < self.prec
+            if _n:
+                return "%11d" % 0
+            elif _r and not _i:
+                return "%+ 10.3fi" % cg.imag
+            elif not _r and _i:
+                return "%+ 10.3f " % cg.real
+            else:
+                return "%+.2f%+.2fi" % (cg.real, cg.imag)
+        # print momentum header
+        line = "-" * (5+len(self.allmomenta)*12)
+        print("O(p_1) x O(p_2) -> O(P)")
+        s, s1, s2 = [], [], []
+        for p, p1, p2 in self.allmomenta:
+            s1.append(momtostring(p1))
+            s2.append(momtostring(p2))
+            s.append(momtostring(p))
+        s1 = "|".join(s1)
+        s1 = "|".join([" p1 ", s1])
+        s2 = "|".join(s2)
+        s2 = "|".join([" p2 ", s2])
+        s = "|".join(s)
+        s = "|".join([" P  ", s])
+        print(s1)
+        print(s2)
+        print(s)
+        print(line)
+
+        # print the irreps
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            tmp = "%4s" % name
+            for m in range(multi):
+                for d in range(dim):
+                    cgs = [cgtostring(x) for x in self.cg[i, m, d]]
+                    cgs = "|".join(cgs)
+                    cgs = "|".join([tmp, cgs])
+                    print(cgs)
+            print(line)
+
 if __name__ == "__main__":
     print("for checks execute the test script")
