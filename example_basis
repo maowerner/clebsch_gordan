@@ -14,6 +14,9 @@ def main():
         print(" working on P^2 = %d ".center(40, "=") % p2)
         g = group.OhGroup(p2=p2, instances=True)
         b = group.BasisIrrep(jmax, g)
+        
+        print ' '
+        b.to_pandas(1)
         b.display()
 
 if __name__ == "__main__":

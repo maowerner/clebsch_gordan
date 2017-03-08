@@ -3,7 +3,7 @@
 
 from .group_class import OhGroup 
 from .group_basis import BasisIrrep
-from .group_cg import OhCG, display
+from .group_cg import OhCG, display, cg_to_pandas
 from .group_class_quat import TOh
 #from .group_basis import BasisIrrep
 from .group_cg_quat import TOhCG
