@@ -7,3 +7,4 @@ from .group_cg import OhCG, display
 from .group_class_quat import TOh
 #from .group_basis import BasisIrrep
 from .group_cg_quat import TOhCG
+from .group_pw_quat import PWOps

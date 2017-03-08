@@ -24,8 +24,8 @@ def main():
             _g = group.TOh(pref=prefs[p2], irreps=True, U3=U3, U2=U2)
             _g.save()
         groups.append(_g)
-        print("p^2 = %d" % p2)
-        print(_g.irrepsname)
+        #print("p^2 = %d" % p2)
+        #print(_g.irrepsname)
 
     # calc coefficients
     print(" CMF ".center(40, "="))
@@ -34,7 +34,9 @@ def main():
         print(" %d x %d -> 0 ".center(40, "+") % (p, p))
         try:
             cgs = group.TOhCG(0, p, p, groups)
-            cgs.display()
+            #cgs = group.TOhCG(0, p, p, groups, ir1="A2g", ir2="T2g")
+            #cgs.display()
+            cgs.print_operators()
             #for ir in irnames:
             #    a, b, c = cgs.get_pion_cg(ir)
             #    if b is not None:
@@ -55,7 +57,8 @@ def main():
             if cgs is None:
                 continue
             print(" %d x %d -> 1 ".center(40, "+") % (i, j))
-            cgs.display(emptyline = empty)
+            #cgs.display(emptyline = empty)
+            cgs.print_operators()
             #for ir in irnames:
             #    a, b, c = cgs.get_pion_cg(ir)
             #    if b is not None:
@@ -72,7 +75,8 @@ def main():
             if cgs is None:
                 continue
             print(" %d x %d -> 2 ".center(40, "+") % (i, j))
-            cgs.display(emptyline = empty)
+            #cgs.display(emptyline = empty)
+            cgs.print_operators()
             #for ir in irnames:
             #    a, b, c = cgs.get_pion_cg(ir)
             #    if b is not None:
@@ -89,7 +93,8 @@ def main():
             if cgs is None:
                 continue
             print(" %d x %d -> 3 ".center(40, "+") % (i, j))
-            cgs.display(emptyline = empty)
+            #cgs.display(emptyline = empty)
+            cgs.print_operators()
             #for ir in irnames:
             #    a, b, c = cgs.get_pion_cg(ir)
             #    if b is not None:
