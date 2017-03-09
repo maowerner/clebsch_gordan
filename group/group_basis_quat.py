@@ -2,32 +2,62 @@
 
 import numpy as np
 
+try:
+    import pandas as pd
+    from pandas import Series, DataFrame
+    usepandas=True
+except ImportError:
+    usepandas=False
+try:
+    import sympy
+    usesympy=True
+except ImportError:
+    usesympy=False
+
 import quat
 import utils
+
 
 class TOhBasis(object):
     def __init__(self, group=None, multi=1, prec=1e-6, verbose=1, jmax=None):
         self.prec = prec
         self.verbose = verbose
+        # check if group is given and has everything needed
         if group is None:
             return # empty object
         try:
             _ = group.irreps
         except AttributeError:
             raise RuntimeError("group has no irreps to calculate basis of")
+        # check further arguments
         if multi < 1:
             print("multiplicity < 1 does not make sense, setting to 1")
-        self.irrepsname = group.irrepsname
-        self.dims = group.irrepdim
+            _multi = 1
+        else:
+            _multi = multi
         if jmax is None:
-            self.maxj = self.get_max_j(group, multi)
+            self.maxj = self.get_max_j(group, _multi)
         else:
             print("max j found, overwritting multi")
             self.maxj = min(50, jmax) # hardcoded upper limit
-        self.Rmat = self.precalc_R_matrices(group)
-        self.basis, self.multi = self.calculate(group, multi)
 
-    def calculate(self, group, multi):
+        # save some needed parameters
+        self.irrepsname = group.irrepsname
+        self.dims = group.irrepdim
+        self.pref = tuple(group.pref_cart)
+        # Everything in group is done in symmetrized spherical harmonics
+        # according to Altmann & Herzig, Point-group Theory Tables, 2011.
+        # The following basis change is done on top for the [2-4]D groups,
+        # respectively.
+        self.U2 = group.U2.conj().T
+        self.U3 = group.U3.conj().T
+        self.U4 = group.U4.conj().T
+
+        # calculate
+        self.Rmat = self.precalc_R_matrices(group)
+        self.basis, self.multi = self.calculate(group)
+
+    def calculate(self, group):
         basis = []
         bmulti = np.zeros((self.maxj, len(self.dims)), dtype=int)
         for j in range(self.maxj):
@@ -39,7 +69,7 @@ class TOhBasis(object):
                     continue
                 #basis[-1].append([])
                 bvec = self.calc_basis_vec(ir, j, self.dims[i], oldbase=basis[-1])
-                basis[-1].append(bvec)
+                basis[-1].append(utils.clean_complex(bvec))
                 bmulti[j][i] += int(bvec.shape[0])//int(self.dims[i])
         return basis, bmulti
 
@@ -226,6 +256,89 @@ class TOhBasis(object):
                     a, b = divmod(ind, m)
                     tstr = tostring(vec, j)
                     print("Irrep %s, row %d, mul %d: %s" % (self.irrepsname[ir], a, b, tstr))
+
+    def to_latex(self, booktabs=True):
+        if not usesympy:
+            print("SymPy not available")
+            return
+        def _s(x):
+            tmp = sympy.nsimplify(x)
+            tmp1 = sympy.simplify(tmp)
+            # TODO: does no align properly using rjust
+            # maybe due to implicit string conversion
+            return str(sympy.latex(tmp1,fold_short_frac=True))
+        def tostring(vec, j):
+            tmpstr = []
+            for m, c in enumerate(vec):
+                if np.absolute(c) < self.prec:
+                    continue
+                tmpstr.append("%s |%d,%+d\\rangle" % (_s(c), j, m-j))
+            tmpstr = " + ".join(tmpstr)
+            tmpstr = " ".join(["$", tmpstr, "$"])
+            return tmpstr
+        print("J & Irrep & row & multiplicity & subduction coefficient \\\\")
+        if booktabs:
+            print("\\midrule")
+        else:
+            print("\\hline")
+        for j, base in enumerate(self.basis):
+            for ir, basevecs in enumerate(base):
+                if basevecs is None:
+                    continue
+                m = basevecs.shape[0] // self.dims[ir]
+                for ind, vec in enumerate(basevecs):
+                    a, b = divmod(ind, m)
+                    tstr = tostring(vec, j)
+                    tmp = ["%d"%j, self.irrepsname[ir], "%d"%a, "%d"%b, tstr]
+                    tmp = " & ".join(tmp)
+                    tmp = " ".join([tmp, "\\\\"])
+                    print(tmp)
+                    #print("%d & %s, row %d, mul %d: %s" % (self.irrepsname[ir], a, b, tstr))
+            if booktabs:
+                print("\\midrule")
+            else:
+                print("\\hline")
+
+    def to_pandas(self, j):
+        if not usesympy:
+            print("SymPy not available")
+            return
+        elif not usepandas:
+            print("Pandas is not available")
+            return
+        elif j >= self.maxj:
+            print("J=%d not calculated!" % j)
+            return
+        # sympify the coefficients
+        def _s(x):
+            tmp = sympy.nsimplify(x)
+            tmp1 = sympy.simplify(tmp)
+            # TODO: does no align properly using rjust
+            # maybe due to implicit string conversion
+            return str(tmp1)
+
+        # actual work
+        jmult = int(2*j+1)
+        base = self.basis[j]
+        df_base = None
+        for ir, basevecs in enumerate(base):
+            if basevecs is None:
+                continue
+            idim = self.dims[ir]
+            iname = self.irrepsname[ir]
+            l = basevecs.shape[0]
+            m = l // idim
+            # build dataframe in whatever basis group was calculated
+            df_base = DataFrame(
+                    {"p" : [self.pref] * jmult * idim,\
+                     "J" : [j] * jmult * idim,\
+                     "M" : range(-j,j+1) * idim,\
+                     "coeff" : [_s(x) for x in basevecs.flatten()],\
+                     "Irrep" : [iname] * jmult * idim,\
+                     "mult" : [x%m for x in range(l)]*idim,\
+                     "row" : [x//m for x in range(l)]*idim})
+            print(df_base)
+            # change basis to cartesian basis if using 3D irrep
 
 if __name__ == "__main__":
     print("for checks execute the test script")
