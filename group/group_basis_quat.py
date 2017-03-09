@@ -257,7 +257,7 @@ class TOhBasis(object):
                     tstr = tostring(vec, j)
                     print("Irrep %s, row %d, mul %d: %s" % (self.irrepsname[ir], a, b, tstr))
 
-    def to_latex(self, booktabs=True):
+    def to_latex(self, document=True, booktabs=True):
         if not usesympy:
             print("SymPy not available")
             return
@@ -276,12 +276,29 @@ class TOhBasis(object):
             tmpstr = " + ".join(tmpstr)
             tmpstr = " ".join(["$", tmpstr, "$"])
             return tmpstr
+        if document:
+            # begin latex document
+            print("\documentclass[10pt,a4paper]{article}")
+            if booktabs:
+                print("\\usepackage{booktabs}")
+            print("\\begin{document}")
+            print("\\begin{table}")
+            print("\\begin{tabular}{ll|cc|l}")
+        if booktabs:
+            print("\\toprule")
         print("J & Irrep & row & multiplicity & subduction coefficient \\\\")
         if booktabs:
             print("\\midrule")
         else:
             print("\\hline")
+        line = False # flag if print line
         for j, base in enumerate(self.basis):
+            if line:
+                if booktabs:
+                    print("\\midrule")
+                else:
+                    print("\\hline")
+                line = False
             for ir, basevecs in enumerate(base):
                 if basevecs is None:
                     continue
@@ -293,11 +310,16 @@ class TOhBasis(object):
                     tmp = " & ".join(tmp)
                     tmp = " ".join([tmp, "\\\\"])
                     print(tmp)
-                    #print("%d & %s, row %d, mul %d: %s" % (self.irrepsname[ir], a, b, tstr))
+                    line = True
+        if line:
             if booktabs:
-                print("\\midrule")
+                print("\\bottomrule")
             else:
                 print("\\hline")
+        if document:
+            print("\\end{tabular}")
+            print("\\end{table}")
+            print("\\end{document}")
 
     def to_pandas(self, j):
         if not usesympy:
