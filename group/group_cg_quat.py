@@ -157,6 +157,7 @@ class TOhCG(object):
         else:
             _path = path
         _name = "/".join([_path, _filename])
+        utils.ensure_write(_name)
         # TODO ensure path
         params = []
         params.append((self.p, self.p1, self.p2))

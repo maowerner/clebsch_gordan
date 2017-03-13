@@ -148,6 +148,7 @@ class TOh(object):
             _fname = os.path.join("./groups/", "group_%d.npz" % p2)
         else:
             _fname = fname
+        utils.ensure_write(_fname)
 
         params = []
         # save pref

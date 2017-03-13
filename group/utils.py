@@ -1,5 +1,6 @@
 """Helper functions used in the package"""
 
+import os
 import unittest
 import numpy as np
 import scipy.misc
@@ -62,3 +63,14 @@ def gram_schmidt(v1, v2, prec=1e-6):
     if np.abs(n) > prec:
         res /= n
     return res
+
+def ensure_write(filename, verbose=False):
+    _d = os.path.dirname(filename)
+    _d = os.path.normpath(_d)
+    if not os.path.exists(_d):
+        os.makedirs(_d)
+        if verbose:
+            print("created path %s" % _d)
+    if verbose and os.path.isfile(filename):
+        print("file exists and will be overwritten:\n%s" % filename)
+
