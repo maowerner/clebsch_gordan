@@ -194,7 +194,7 @@ class BasisIrrep(object):
                     [cg['\mu'], cg['cg-coefficient'], \
                      Series(sorted(range(1,4)*dim_ir), name='\gamma'), \
                      Series([momenta[self.p2]] * dim_ir*3, name='p')] \
-                                                            ).T.set_index('\mu')
+                                                            ).T.set_index('\mu').sort_index()
                 print df_gamma
                 print ' '
 
