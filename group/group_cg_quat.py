@@ -3,8 +3,21 @@
 import numpy as np
 import itertools as it
 
+try:
+    import pandas as pd
+    from pandas import Series, DataFrame
+    usepandas=True
+except ImportError:
+    usepandas=False
+try:
+    import sympy
+    usesympy=True
+except ImportError:
+    usesympy=False
+
 import group_class
 import utils
+import latex_utils as lu
 
 class TOhCG(object):
     def __init__(self, p, p1, p2, groups=None, ir1=None, ir2=None):
@@ -654,6 +667,111 @@ class TOhCG(object):
                     cgs = "|".join([tmp, cgs])
                     print(cgs)
             print(line)
+
+    def to_latex(self, document=True, table=True, booktabs=True):
+        def cgtostring(vec):
+            tmpstr = []
+            for c in vec:
+                if np.absolute(c) < self.prec:
+                    tmpstr.append(" ")
+                    continue
+                tmpstr.append("$%s$" % (lu.latexify(c)))
+            tmpstr = " & ".join(tmpstr)
+            return tmpstr
+        if document:
+            packages = ["amsmath"]
+            if booktabs:
+                packages.append("booktabs")
+            lu.start_document(packages)
+        if document or table:
+            a = "c" * len(self.allmomenta)
+            align = "".join(["lcc|", a])
+            lu.start_table(align=align)
+        if booktabs:
+            print("\\toprule")
+        add = "& " * (len(self.allmomenta))
+        print("Irrep & row & multiplicity %s \\\\" % add)
+        line = False # flag if print line
+        trule, mrule, brule = lu.hrules(booktabs)
+        print(trule)
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            if line:
+                print(mrule)
+                line = False
+            for m in range(multi):
+                for d in range(dim):
+                    tstr = cgtostring(self.cg[i,m,d])
+                    tmp = ["%s"%name, "%d"%d, "%d"%m, tstr]
+                    tmp = " & ".join(tmp)
+                    tmp = " ".join([tmp, "\\\\"])
+                    print(tmp)
+                    line = True
+        if line:
+            print(brule)
+        if document or table:
+            lu.end_table()
+        if document:
+            lu.end_document()
+
+    def to_pandas(self, irrep=None):
+        if not usesympy:
+            print("SymPy not available")
+            return
+        elif not usepandas:
+            print("Pandas is not available")
+            return
+        # sympify the coefficients
+        def _s(x):
+            tmp = sympy.nsimplify(x)
+            tmp1 = sympy.simplify(tmp)
+            # TODO: does no align properly using rjust
+            # maybe due to implicit string conversion
+            return str(tmp1)
+
+        # prepare some constants
+        plists = [[], [], []]
+        for p, p1, p2 in self.allmomenta:
+            plists[0].append(p)
+            plists[1].append(p1)
+            plists[2].append(p2)
+        psize = len(self.allmomenta)
+        dfdict = {"Irrep" : [],\
+                  "cg" : [],\
+                  "row" : [],\
+                  "multi" : [],\
+                  "ptot": [],\
+                  "p1" : [],\
+                  "p2" : []}
+        # actual work
+        for i, (name, multi, dim) in enumerate(self.cgnames):
+            # skip if irrep is given and not the same
+            if irrep is not None and name != irrep:
+                continue
+            size = multi*dim
+            tsize = size*psize
+
+            dfdict["Irrep"] = dfdict["Irrep"] + [name] * tsize
+            dfdict["row"] = dfdict["row"] + [\
+                    (x//psize)//multi+1 for x in range(tsize)]
+            dfdict["multi"] = dfdict["multi"] + [\
+                    (x//psize)%multi+1 for x in range(tsize)]
+            dfdict["ptot"] = dfdict["ptot"] + plists[0] * size
+            dfdict["p1"] = dfdict["p1"] + plists[1] * size
+            dfdict["p2"] = dfdict["p2"] + plists[2] * size
+            dfdict["cg"] = dfdict["cg"] + [\
+                    _s(x) for x in self.cg[i,:multi,:dim].flatten()]
+            #df = DataFrame(dfdict)
+            #for m in range(multi):
+            #    for d in range(dim):
+            #        tstr = cgtostring(self.cg[i,m,d])
+            #        tmp = ["%s"%name, "%d"%d, "%d"%m, tstr]
+            #        tmp = " & ".join(tmp)
+            #        tmp = " ".join([tmp, "\\\\"])
+            #        print(tmp)
+            #        line = True
+        df = DataFrame(dfdict)
+        print(df)
+        #return df
 
 if __name__ == "__main__":
     print("for checks execute the test script")

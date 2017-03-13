@@ -36,13 +36,18 @@ def main():
             cgs = group.TOhCG(0, p, p, groups)
             #cgs = group.TOhCG(0, p, p, groups, ir1="A2g", ir2="T2g")
             #cgs.display()
-            #cgs.print_operators()
-            for ir in irnames:
-                a, b, c = cgs.get_pion_cg(ir)
-                if b is not None:
-                    print(ir)
-                    group.cg_to_pandas(b,c)
-                    #group.display(b, c)
+            print("display")
+            cgs.print_operators()
+            print("latex")
+            cgs.to_latex()
+            print("pandas")
+            cgs.to_pandas()
+            #for ir in irnames:
+            #    a, b, c = cgs.get_pion_cg(ir)
+            #    if b is not None:
+            #        print(ir)
+            #        group.cg_to_pandas(b,c)
+            #        #group.display(b, c)
         except RuntimeError:
             continue
     return

@@ -16,6 +16,7 @@ except ImportError:
 
 import quat
 import utils
+import latex_utils as lu
 
 
 class TOhBasis(object):
@@ -257,47 +258,32 @@ class TOhBasis(object):
                     tstr = tostring(vec, j)
                     print("Irrep %s, row %d, mul %d: %s" % (self.irrepsname[ir], a, b, tstr))
 
-    def to_latex(self, document=True, booktabs=True):
-        if not usesympy:
-            print("SymPy not available")
-            return
-        def _s(x):
-            tmp = sympy.nsimplify(x)
-            tmp1 = sympy.simplify(tmp)
-            # TODO: does no align properly using rjust
-            # maybe due to implicit string conversion
-            return str(sympy.latex(tmp1,fold_short_frac=True))
+    def to_latex(self, document=True, table=True, booktabs=True):
         def tostring(vec, j):
             tmpstr = []
             for m, c in enumerate(vec):
                 if np.absolute(c) < self.prec:
                     continue
-                tmpstr.append("%s |%d,%+d\\rangle" % (_s(c), j, m-j))
+                tmpstr.append("%s |%d,%+d\\rangle" % (lu.latexify(c), j, m-j))
             tmpstr = " + ".join(tmpstr)
             tmpstr = " ".join(["$", tmpstr, "$"])
             return tmpstr
         if document:
-            # begin latex document
-            print("\documentclass[10pt,a4paper]{article}")
+            packages = ["amsmath"]
             if booktabs:
-                print("\\usepackage{booktabs}")
-            print("\\begin{document}")
-            print("\\begin{table}")
-            print("\\begin{tabular}{ll|cc|l}")
+                packages.append("booktabs")
+            lu.start_document(packages)
+        if document or table:
+            lu.start_table(align="l|lcc|l")
         if booktabs:
             print("\\toprule")
         print("J & Irrep & row & multiplicity & subduction coefficient \\\\")
-        if booktabs:
-            print("\\midrule")
-        else:
-            print("\\hline")
         line = False # flag if print line
+        trule, mrule, brule = lu.hrules(booktabs)
+        print(trule)
         for j, base in enumerate(self.basis):
             if line:
-                if booktabs:
-                    print("\\midrule")
-                else:
-                    print("\\hline")
+                print(mrule)
                 line = False
             for ir, basevecs in enumerate(base):
                 if basevecs is None:
@@ -312,14 +298,11 @@ class TOhBasis(object):
                     print(tmp)
                     line = True
         if line:
-            if booktabs:
-                print("\\bottomrule")
-            else:
-                print("\\hline")
+            print(brule)
+        if document or table:
+            lu.end_table()
         if document:
-            print("\\end{tabular}")
-            print("\\end{table}")
-            print("\\end{document}")
+            lu.end_document()
 
     def to_pandas(self, j):
         if not usesympy:
@@ -357,8 +340,8 @@ class TOhBasis(object):
                      "M" : range(-j,j+1) * idim,\
                      "coeff" : [_s(x) for x in basevecs.flatten()],\
                      "Irrep" : [iname] * jmult * idim,\
-                     "mult" : [x%m for x in range(l)]*idim,\
-                     "row" : [x//m for x in range(l)]*idim})
+                     "mult" : [x%m+1 for x in range(l)]*idim,\
+                     "row" : [x//m+1 for x in range(l)]*idim})
             print(df_base)
             # change basis to cartesian basis if using 3D irrep
 
