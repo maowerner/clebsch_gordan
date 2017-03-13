@@ -16,7 +16,8 @@ class TestGenerators(unittest.TestCase):
         self.elements = [quat.QNew.create_from_vector(
                 quat.qPar[x], 1) for x in range(5)]
         self.elementsinv = [quat.QNew.create_from_vector(
-                quat.qPar[x], self.inv[x]) for x in range(5)]
+                quat.qPar[x], -1) for x in range(5)]
+                #quat.qPar[x], self.inv[x]) for x in range(5)]
 
     def test_1D(self):
         res1 = gg.genJ0(self.elements)
@@ -29,7 +30,7 @@ class TestGenerators(unittest.TestCase):
     def test_1D_inv(self):
         res1 = gg.genJ0(self.elementsinv, inv=True)
         res2 = gg.gen1D(self.elementsinv, inv=True)
-        res_theo = np.asarray(self.inv).reshape(-1,1,1)
+        res_theo = np.ones_like(res1) * -1
         self.assertEqual(res1, res_theo)
         self.assertEqual(res2, res_theo)
         self.assertEqual(res1, res2)
@@ -43,9 +44,9 @@ class TestGenerators(unittest.TestCase):
         self.assertEqual(res1, res2)
 
     def test_2D_inv(self):
-        inv = [1., -1., 1., -1., 1]
+        # implicit inversion due to construction
         res1 = gg.genJ1_2(self.elementsinv)
-        res2 = gg.gen2D(self.elementsinv)
+        res2 = gg.gen2D(self.elementsinv, inv=True)
         #res_theo = np.ones_like(res1)
         #self.assertEqual(res1, res_theo)
         #self.assertEqual(res2, res_theo)
@@ -145,6 +146,7 @@ class TestAllElements(unittest.TestCase):
         for i in res:
             self.assertFalse(utils._eq(i))
 
+@unittest.skip("skip output testing")
 class PrintIrreps(unittest.TestCase):
     def setUp(self):
         self.addTypeEqualityFunc(np.ndarray, utils.check_array)

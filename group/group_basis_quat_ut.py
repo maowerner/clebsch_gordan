@@ -65,10 +65,10 @@ class TestBasis(unittest.TestCase):
     def test_calculate(self):
         ind1 = g0.irrepsname.index("A1g")
         ind2 = g0.irrepsname.index("T1u")
-        res1, res2 = self.basis.calculate(g0, 1)
+        res1, res2 = self.basis.calculate(g0)
         s = 1./np.sqrt(2.)
         m0 = np.ones((1,))
-        m1 = np.asarray([[s,0,s],[0,1,0],[s,0,-s]])
+        m1 = np.asarray([[1,0,0],[0,1,0],[0,0,1.]])
         dim = g0.irrepdim
 
         self.assertEqual(len(res1), 9)
@@ -107,8 +107,7 @@ class TestBasis(unittest.TestCase):
     def test_calc_basis_vec_T1u_j1(self):
         ir = g0.irreps[g0.irrepsname.index("T1u")]
         res = self.basis.calc_basis_vec(ir, 1, 3)
-        s = 1./np.sqrt(2.)
-        res_theo = np.asarray([[s,0,s],[0,1,0],[s,0,-s]])
+        res_theo = np.asarray([[1,0,0],[0,1,0],[0,0,1.]])
         self.assertEqual(res, res_theo)
         self.assertEqual(res.shape[0], 3)
 
@@ -116,12 +115,9 @@ class TestBasis(unittest.TestCase):
         ir = g0.irreps[g0.irrepsname.index("T1u")]
         res = self.basis.calc_basis_vec(ir, 5, 3)
         res_theo = np.zeros((11,))
-        res_theo[0] = 0.51538820
-        res_theo[2] = -0.20337230
-        res_theo[4] = 0.43933439
-        res_theo[6] = -res_theo[4]
-        res_theo[8] = -res_theo[2]
-        res_theo[10] = -res_theo[0]
+        res_theo[2] = 0.28761187
+        res_theo[6] = 0.6213126
+        res_theo[10] = 0.728868
         self.assertEqual(res[2], res_theo)
         self.assertEqual(res.shape[0], 6)
 
@@ -199,7 +195,7 @@ class TestBasis_LG1(unittest.TestCase):
         self.assertEqual(res, res_theo)
         self.assertEqual(res.shape[0], 2)
 
-#@unittest.skip("bla")
+@unittest.skip("skip output testing")
 class TestBasisPrint(unittest.TestCase):
     @classmethod
     def setUpClass(self):
@@ -214,7 +210,7 @@ class TestBasisPrint(unittest.TestCase):
     def test_print_overview(self):
         self.basis.print_overview()
 
-#@unittest.skip("bla")
+@unittest.skip("skip output testing")
 class TestBasisLG1Print(unittest.TestCase):
     @classmethod
     def setUpClass(self):

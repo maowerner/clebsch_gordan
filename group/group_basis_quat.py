@@ -45,7 +45,8 @@ class TOhBasis(object):
         # save some needed parameters
         self.irrepsname = group.irrepsname
         self.dims = group.irrepdim
-        self.pref = tuple(group.pref_cart)
+        _pref = group.pref_cart
+        self.pref = (0,0,0) if _pref is None else tuple(_pref)
         # Everything in group is done in symmetrized spherical harmonics
         # according to Altmann & Herzig, Point-group Theory Tables, 2011.
         # The following basis change is done on top for the [2-4]D groups,
