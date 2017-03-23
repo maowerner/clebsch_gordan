@@ -236,7 +236,7 @@ class TOh(object):
 
     def make_mult_table(self):
         self.tmult = np.zeros((self.order, self.order), dtype=int)
-        self.tmult_global = np.zeros((self.order, self.order), dtype=int)
+        self.tmult_global = np.zeros_like(self.tmult)
         for i in range(self.order):
             for j in range(self.order):
                 res = -999
@@ -410,8 +410,10 @@ class TOh(object):
 
     def print_mult_table(self, width=24):
         print("multiplication table\n")
+        if width > self.order:
+            width = self.order
         n = int(self.order)/width
-        line = "_".center(self.width*5, "_")
+        line = "_".center(width*5, "_")
         for n1 in range(n):
             head = ["%2d" % (x+n1*width) for x in range(width)]
             head = " ".join(head)
@@ -421,7 +423,7 @@ class TOh(object):
                 print(line)
                 for i in range(width):
                     ind1 = i+n2*width
-                    ind2 = select(n1*width, (n1+1)*width)
+                    ind2 = slice(n1*width, (n1+1)*width)
                     tmpstr = ["%2d" % x for x in self.tmult[ind1,ind2]]
                     tmpstr = " ".join(tmpstr)
                     tmpstr = "".join(["%2d | [" % (ind1), tmpstr, "]"])
@@ -438,16 +440,16 @@ class TOh(object):
         print("")
         tmpstr = [" %6d " % x for x in range(self.nclasses)]
         tmpstr = "|".join(tmpstr)
-        tmpstr = "".join(["    |", tmpstr])
+        tmpstr = "".join(["     |", tmpstr])
         print(tmpstr)
         print("_".center(self.nclasses*9+3, "_"))
         for i in range(self.nclasses):
             tmpstr = [_tostring(x) for x in self.tchar[i]]
             tmpstr = "|".join(tmpstr)
             try:
-                tmpstr = "".join([" %3s|" % self.irreps[i].name, tmpstr])
+                tmpstr = "".join([" %4s|" % self.irreps[i].name, tmpstr])
             except IndexError:
-                tmpstr = "".join([" %3d|" % i, tmpstr])
+                tmpstr = "".join([" %4d|" % i, tmpstr])
             print(tmpstr)
 
     def print_class_members(self):
@@ -521,19 +523,27 @@ class TOh(object):
         alldone = self.check_possible_dims()
         if not alldone:
             for d in range(1, 5):
+                # find irreps with simple generators
                 self.get_irreps(d)
+                alldone, alldimdone = self.check_possible_dims(d)
+                if self.debug > 0:
+                    print("dim %d: all done: %r, dim done %r" % (d, alldone, alldimdone))
+                if alldone:
+                    break
+                # protect the 1D irreps with imaginary characters,
+                # computation is slow with big groups
+                if alldimdone or (d == 1 and self.order > 10):
+                    continue
+                if d == 1:
+                    self.find_flip_vectors_imaginary()
+                    self.get_irreps_imaginary()
+                else:
+                    self.get_irreps(d, special=True)
                 alldone = self.check_possible_dims()
                 if alldone:
                     break
-        # find special cases, sorted by time needed from fast to slow
-        if not alldone:
-            for d in range(2, 3):
-                self.get_irreps(d, special=True)
-                alldone = self.check_possible_dims()
-                if alldone:
-                    break
-        #self.print_char_table()
-        if not alldone:
+        # try irreps with imaginary characters, if group is big
+        if not alldone and self.order > 10:
             self.find_flip_vectors_imaginary()
             self.get_irreps_imaginary()
             alldone = self.check_possible_dims()
@@ -565,34 +575,58 @@ class TOh(object):
         for n in range(nmax):
             self.pos[:,n] = np.sum(tmp == n+1, axis=1)
 
-    def check_possible_dims(self):
+    def check_possible_dims(self, dim=None):
+        """Return true if all irreps were found.
+        If dim is given returns 2 bools, first if all were found,
+        second if all for that dim where found.
+        """
+        # if none found yet
         if len(self.irrepsname) == 0:
+            if dim is not None:
+                return False, False
             return False
-        elif len(self.irreps) == self.nclasses:
+        # if all were found
+        if len(self.irreps) == self.nclasses:
+            if dim is not None:
+                return True, True
             return True
-        elif self.pos is None:
-            return False
+        # maximal dimension of irreps
         nmax = self.pos.shape[1]
+        # count the occurences of each dimension
         fre = np.zeros((nmax,), dtype=int)
         for n in range(nmax):
             fre[n] = np.sum(self.irrepdim == n+1)
-        skip = False
+        # if correct number of irreps already known
+        if self.pos.shape[0] == 1:
+            if np.any(fre > self.pos[0]):
+                if self.debug > 0:
+                    tmp = ", ".join(["%dD:%d" % (i+1,n) for i,n in enumerate(self.pos[0])])
+                    print("expected: %s" % tmp)
+                    tmp = ", ".join(["%dD:%d" % (i+1,n) for i,n in enumerate(fre)])
+                    print("found: %s" % tmp)
+                raise RuntimeError("found higher number of irreps than expected")
+            if dim is not None and dim > 0 and dim < nmax:
+                return False, fre[dim-1] == self.pos[0,dim-1]
+            if dim is not None:
+                return False, True
+            # still missing some irreps, otherwise check 2 at
+            # the beginning would have fired
+            return False
+        # keep vector that are still possible
         tmp = []
         for p in self.pos:
-            skip = False
-            for n in range(nmax):
-                if not (fre[n] <= p[n]):
-                    skip = True
-                    break
-            if not skip:
-                tmp.append(p)
-        tmp = np.asarray(tmp, dtype=int)
-        if tmp.size == nmax:
-            self.pos = None
-        elif tmp.size == 0:
+            if np.any(fre > p):
+                continue
+            tmp.append(p)
+        self.pos = np.asarray(tmp, dtype=int)
+        if self.debug > 0:
+            print("possible dims:")
+            print(self.pos)
+        # if none left something went wrong
+        if self.pos.size == 0:
             raise RuntimeError("no possible dimensions found")
-        else:
-            self.pos = tmp.copy()
+        if dim is not None and dim > 0:
+            return False, np.all(self.pos[:,dim-1] == fre[dim-1])
         return False
 
     def append_irrep(self, irrep):
@@ -608,19 +642,21 @@ class TOh(object):
         """
         _suffixes = ["%d" % n for n,i in enumerate(flips)]
         _flips = np.asarray(flips)
+        if _flips.size == 0:
+            raise RuntimeError("no flips to process")
         if self.withinversion is False:
             return _flips, _suffixes
         # get the inversion flags for the classes
-        inv= np.asarray([self.elements[x].i for x in self.crep], dtype=int)
-        # get the flip that is equal to just the inversion
-        for i, f in enumerate(_flips):
-            if np.allclose(f, inv):
-                _suffixes[i] = "1u"
-                break
+        inv = np.asarray([self.elements[x].i for x in self.crep], dtype=int)
         if special:
             count = 1
         else:
             count = 2
+            # get the flip that is equal to just the inversion
+            for i, f in enumerate(_flips):
+                if np.allclose(f, inv):
+                    _suffixes[i] = "1u"
+                    break
         # treat all other flips and pair them using the inversion
         for i in range(len(_suffixes)):
             # if already assigned, continue
@@ -641,10 +677,9 @@ class TOh(object):
             count += 1
         # set the correct names in the correct order
         if special:
-            tmp = ["1g"]
+            tmp = ["1g", "1u"]
         else:
-            tmp = []
-        tmp.append("1u")
+            tmp = ["1u"]
         for i in range(2,count):
             tmp.append("%dg" % i)
             tmp.append("%du" % i)
@@ -694,10 +729,13 @@ class TOh(object):
                     fvec[x] *= -1
                 irrep.flip_classes(fvec, self.lclasses)
                 check1 = np.sum(irrep.mx)
-                check2 = irrep.is_representation(self.tmult)
+                check2 = irrep.is_representation(self.tmult, verbose=False)
                 irrep.mx = mx_backup.copy()
                 if utils._eq(check1) and check2:
                     flips.append(fvec.copy())
+                if self.debug > 1:
+                    print("fvec: %s" % fvec.__str__())
+                    print("sum check %r, irrep check %r" % (check1, check2))
         flips = np.asarray(flips, dtype=int)
         self.flip, self.suffixes = self.sort_flip_vectors(flips)
 
@@ -725,35 +763,56 @@ class TOh(object):
         n = self.nclasses
         mx_backup = irrep.mx.copy()
         count = 0
+        if self.debug > 0:
+            print("find imaginary flips")
+            print("number of classes %d" % n)
         # multiply classes with -1, i and -i,
         # always the same number of classes with +i and -i
         # total number of classes flipped
-        for kt in range(3, n):
-            #print("flip %d classes" % (kt))
+        for kt in range(1, n):
+            if self.debug > 1:
+                print("flip %d classes" % (kt))
             # half the number of classes with imaginary flip
-            for ki in range(1, kt//2):
+            for ki in range(1, kt//2+1):
+                if self.debug > 1:
+                    print("number of imaginary classes: %d" % (2*ki))
                 # get indices for classes with +/- i
                 for ind1 in it.combinations(range(1, n), ki):
                     for ind2 in it.combinations(range(1,n), ki):
                         # check if some class is in both index arrays
                         # and skip if it is
                         if check_index(ind1, ind2):
+                            if self.debug > 1:
+                                print("collision for +/-i:")
+                                print("+i: %s" % ind1.__str__())
+                                print("-i: %s" % ind2.__str__())
                             continue
                         # get indices for classes with -1
                         for indm in it.combinations(range(1,n), kt-2*ki):
                             # check if some class is already taken
                             # and skip if it is
                             if check_index(ind1, indm):
+                                if self.debug > 1:
+                                    print("collision for +i/-1:")
+                                    print("+i: %s" % ind1.__str__())
+                                    print("-i: %s" % indm.__str__())
                                 continue
                             # check if some class is already taken
                             # and skip if it is
                             if check_index(ind2, indm):
+                                if self.debug > 1:
+                                    print("collision for -i/-1:")
+                                    print("+i: %s" % ind2.__str__())
+                                    print("-i: %s" % indm.__str__())
                                 continue
                             fvec = f_vec(n, ind1, ind2, indm)
                             irrep.flip_classes(fvec, self.lclasses)
                             check1 = np.sum(irrep.mx)
                             check2 = irrep.is_representation(self.tmult)
                             irrep.mx = mx_backup.copy()
+                            if self.debug > 0:
+                                print("fvec: %s" % fvec.__str__())
+                                print("sum check %r, irrep check %r" % (check1, check2))
                             if utils._eq(check1) and check2:
                                 count += 1
                                 flips.append(fvec.copy())
@@ -908,7 +967,7 @@ class TOh2Dp(TOhRep):
         p2 = 0 if (pref is None) else np.dot(pref, pref)
         if p2 in [0, 3]:
             self.mx = gg.genEpCMF(elements, U=U)
-        elif p2 == 1:
+        elif p2 in [1, 4]:
             self.mx = gg.genEpMF1(elements, U=U)
         else:
             raise RuntimeError("reference momentum not implemented")
