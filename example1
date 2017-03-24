@@ -12,11 +12,12 @@ def main():
     groups = []
 
     # initialize groups
+    U3 = np.asarray([[0,0,-1.],[1.j,0,0],[0,1,0]])
     for p2 in range(p2max):
         try:
             _g = group.TOh.read(p2=p2)
         except IOError:
-            _g = group.TOh(pref=prefs[p2], irreps=True, U3=U3, U2=U2)
+            _g = group.TOh(pref=prefs[p2], irreps=True, U3=U3)
             _g.save()
         groups.append(_g)
         print("p^2 = %d" % p2)

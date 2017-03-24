@@ -31,6 +31,8 @@ class TOhCG(object):
         self.p2 = p2
         indp0, indp1, indp2, indp = None, None, None, None
         self.U0 = None
+        # transformation from cartesian to symmetrized spherical
+        # harmonics
         self._U = np.asarray([[0.,-1.j,0.],[0.,0.,1.],[-1.,0.,0.]])
         if groups is not None:
             pindex = [x.p2 for x in groups]
@@ -53,13 +55,10 @@ class TOhCG(object):
                     not utils._eq(self.T0, groups[indp1].U2)):
                 raise RuntimeError("The group of op 2 has different basis")
             self._U = self.U0.dot(self._U)
-        # lookup table for reference momenta
-        lpref = [np.asarray([0.,0.,0.]), np.asarray([0.,0.,1.]), 
-                 np.asarray([1.,1.,0.]), np.asarray([1.,1.,1.])]
-        # save reference momenta
-        self.pref = self._U.dot(lpref[p])
-        self.pref1 = self._U.dot(lpref[p1])
-        self.pref2 = self._U.dot(lpref[p2])
+            # save reference momenta
+            self.pref = self._U.dot(groups[indp0].pref_cart)
+            self.pref1 = self._U.dot(groups[indp1].pref_cart)
+            self.pref2 = self._U.dot(groups[indp2].pref_cart)
 
         # get the cosets, always in the maximal group (2O here)
         # returns None if groups is None
@@ -69,7 +68,7 @@ class TOhCG(object):
         #print(self.coset2)
 
         # generate the allowed momentum combinations and sort them into cosets
-        self.gen_momenta()
+        self.gen_momenta(pm=max(p, p1, p2, 4))
 
         # calculate induced rep gamma
         # here for p1 and p2 the A1(A2) irreps are hard-coded
@@ -83,7 +82,7 @@ class TOhCG(object):
             self.irstr2 = ir2
         else:
             if ir1 is None:
-                self.irstr1 = "A1u" if int(p1) in [0,3] else "A2u"
+                self.irstr1 = "A1u" if int(p1) in [0,3,5,6] else "A2u"
             else:
                 self.irstr1 = ir1
             if self.irstr1 not in groups[indp1].irrepsname:
@@ -91,10 +90,12 @@ class TOhCG(object):
             else:
                 self.dim1 = groups[indp1].irrepsname.index(self.irstr1)
                 self.dim1 = groups[indp1].irrepdim[self.dim1]
-            self.gamma1 = self.gen_ind_reps(groups, indp0, indp1, self.irstr1, self.coset1)
+            self.gamma1 = self.gen_ind_reps(groups, indp0, indp1,
+                                self.irstr1, self.coset1)
+            #print(self.gamma1[:5])
 
             if ir2 is None:
-                self.irstr2 = "A1u" if int(p2) in [0,3] else "A2u"
+                self.irstr2 = "A1u" if int(p2) in [0,3,5,6] else "A2u"
             else:
                 self.irstr2 = ir2
             if self.irstr2 not in groups[indp2].irrepsname:
@@ -102,9 +103,11 @@ class TOhCG(object):
             else:
                 self.dim2 = groups[indp2].irrepsname.index(self.irstr2)
                 self.dim2 = groups[indp2].irrepdim[self.dim2]
-            self.gamma2 = self.gen_ind_reps(groups, indp0, indp2, self.irstr2, self.coset2)
+            self.gamma2 = self.gen_ind_reps(groups, indp0, indp2,
+                                self.irstr2, self.coset2)
+            #print(self.gamma2[:5])
+
             self.sort_momenta(groups[indp0])
-        #print(self.gamma1[:5])
 
         self.calc_cg_ha(groups, indp)
         #self.calc_cg_new(groups, indp)
@@ -216,8 +219,9 @@ class TOhCG(object):
             print("some coset not found!")
         return coset
 
-    def gen_momenta(self):
-        pm = 4 # maximum component in each direction
+    def gen_momenta(self, pm=4):
+        print("pm=%d" % pm)
+        # pm: maximum component in each direction
         def _abs(x):
             return np.vdot(x, x) <= pm
         def _abs1(x,a):
@@ -240,6 +244,7 @@ class TOhCG(object):
     def sort_momenta(self, g0):
         # check if cosets exists
         if self.coset1 is None or self.coset2 is None:
+            print("some coset does not exist")
             self.smomenta1 = None
             self.smomenta2 = None
             return
@@ -286,7 +291,6 @@ class TOhCG(object):
             j1, j2 = self.check_all_cosets(p, p1, p2)
             for x in dimcomb:
                 self.indices.append((j1*self.dim1+x[0], j2*self.dim2+x[1]))
-
 
     def gen_ind_reps(self, groups, p0, p, irstr, coset):
         g0 = groups[p0]
@@ -623,7 +627,7 @@ class TOhCG(object):
             return cg
         return None
 
-    def print_operators(self):
+    def print_operators(self, width=None):
         def momtostring(p):
             _p = np.real_if_close((self._U.conj().T).dot(p))
             return " (%+1d,%+1d,%+1d)" % (_p[0],_p[1],_p[2])
@@ -639,35 +643,80 @@ class TOhCG(object):
                 return "%+ 10.3f " % cg.real
             else:
                 return "%+.2f%+.2fi" % (cg.real, cg.imag)
-        # print momentum header
-        line = "-" * (5+len(self.allmomenta)*12)
-        print("O(p_1) x O(p_2) -> O(P)")
-        s, s1, s2 = [], [], []
-        for p, p1, p2 in self.allmomenta:
-            s1.append(momtostring(p1))
-            s2.append(momtostring(p2))
-            s.append(momtostring(p))
-        s1 = "|".join(s1)
-        s1 = "|".join([" p1 ", s1])
-        s2 = "|".join(s2)
-        s2 = "|".join([" p2 ", s2])
-        s = "|".join(s)
-        s = "|".join([" P  ", s])
-        print(s1)
-        print(s2)
-        print(s)
-        print(line)
+        # set width for better screen printing
+        _l = len(self.allmomenta)
+        if width is None:
+            if _l < 9:
+                _w = _l
+            else:
+                _w = 6
+        else:
+            _w = width
+        n = _l//_w
 
-        # print the irreps
-        for i, (name, multi, dim) in enumerate(self.cgnames):
-            tmp = "%4s" % name
-            for m in range(multi):
-                for d in range(dim):
-                    cgs = [cgtostring(x) for x in self.cg[i, m, d]]
-                    cgs = "|".join(cgs)
-                    cgs = "|".join([tmp, cgs])
-                    print(cgs)
+        line = "-" * (5+_w*12)
+        print("O(p_1) x O(p_2) -> O(P)")
+        for _n in range(n):
+            # print momentum header
+            s, s1, s2 = [], [], []
+            _s = slice(_n*_w, (_n+1)*_w)
+            for p, p1, p2 in self.allmomenta[_s]:
+                s1.append(momtostring(p1))
+                s2.append(momtostring(p2))
+                s.append(momtostring(p))
+            s1 = "|".join(s1)
+            s1 = "|".join([" p1 ", s1])
+            s2 = "|".join(s2)
+            s2 = "|".join([" p2 ", s2])
+            s = "|".join(s)
+            s = "|".join([" P  ", s])
+            print(s1)
+            print(s2)
+            print(s)
             print(line)
+
+            # print the irreps
+            for i, (name, multi, dim) in enumerate(self.cgnames):
+                tmp = "%4s" % name
+                for m in range(multi):
+                    for d in range(dim):
+                        cgs = [cgtostring(x) for x in self.cg[i, m, d, _s]]
+                        cgs = "|".join(cgs)
+                        cgs = "|".join([tmp, cgs])
+                        print(cgs)
+                print(line)
+        m = _l % _w
+        if m != 0:
+            line = "-" * (5+m*12)
+            # print momentum header
+            s, s1, s2 = [], [], []
+            _s = slice(m*_w, None)
+            for p, p1, p2 in self.allmomenta[_s]:
+                s1.append(momtostring(p1))
+                s2.append(momtostring(p2))
+                s.append(momtostring(p))
+            s1 = "|".join(s1)
+            s1 = "|".join([" p1 ", s1])
+            s2 = "|".join(s2)
+            s2 = "|".join([" p2 ", s2])
+            s = "|".join(s)
+            s = "|".join([" P  ", s])
+            print(s1)
+            print(s2)
+            print(s)
+            print(line)
+
+            # print the irreps
+            for i, (name, multi, dim) in enumerate(self.cgnames):
+                tmp = "%4s" % name
+                for m in range(multi):
+                    for d in range(dim):
+                        cgs = [cgtostring(x) for x in self.cg[i, m, d, _s]]
+                        cgs = "|".join(cgs)
+                        cgs = "|".join([tmp, cgs])
+                        print(cgs)
+                print(line)
+
 
     def to_latex(self, document=True, table=True, booktabs=True):
         def cgtostring(vec):

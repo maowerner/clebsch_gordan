@@ -94,14 +94,19 @@ class TOh(object):
             print("total time: %.2fs" % (clockalle - clockalls))
 
     @classmethod
-    def read(cls, fname=None, p2=0):
+    def read(cls, path=None, fname=None, p2=0):
+        if path is None:
+            _path = "./groups"
+        else:
+            _path = path
         if fname is None:
-            _fname = os.path.join("./groups/", "group_%d.npz" % p2)
+            _fname = "group_%d.npz" % p2
         else:
             _fname = fname
+        filepath = os.path.join(_path, _fname)
 
         # read file
-        fh = np.load(_fname)
+        fh = np.load(filepath)
         params = fh["params"]
         tmult = fh["tmult"]
         tmultg = fh["tmultg"]
@@ -117,6 +122,7 @@ class TOh(object):
         lel = params[7]
         flip = params[8]
         flipi = params[9]
+        pos = params[10]
 
         # create new class
         _new = cls(pref=pref, debug=debug, withinversion=withinv,
@@ -133,6 +139,7 @@ class TOh(object):
         _new.make_conjugacy_relations()
         _new.assign_classes()
         # create irreps, if necessary
+        _new.pos = pos
         if flipi is not None:
             _new.flip_i = flipi.copy()
         if flip is not None:
@@ -141,14 +148,19 @@ class TOh(object):
 
         return _new
 
-    def save(self, fname=None):
+    def save(self, path=None, fname=None):
+        if path is None:
+            _path = "./groups"
+        else:
+            _path = path
         if fname is None:
             p2 = 0 if self.pref_cart is None else (
                     np.dot(self.pref_cart, self.pref_cart))
-            _fname = os.path.join("./groups/", "group_%d.npz" % p2)
+            _fname = "group_%d.npz" % p2
         else:
             _fname = fname
-        utils.ensure_write(_fname)
+        filepath = os.path.join(_path, _fname)
+        utils.ensure_write(filepath)
 
         params = []
         # save pref
@@ -164,23 +176,22 @@ class TOh(object):
         params.append(self.U4)
         params.append(self.elements)
         params.append(self.lelements)
-        tmp = None
         try:
-            tmp = self.flip.copy()
-        except AttributeError:
-            pass
-        params.append(tmp)
-        tmp = None
+            params.append(self.flip)
+        except:
+            params.append(None)
         try:
-            tmp = self.flip_i.copy()
-        except AttributeError:
-            pass
-        params.append(tmp)
-
+            params.append(self.flip_i)
+        except:
+            params.append(None)
+        try:
+            params.append(self.pos)
+        except:
+            params.append(None)
 
         params = np.asarray(params, dtype=object)
 
-        np.savez(_fname, params=params, tmult=self.tmult,
+        np.savez(filepath, params=params, tmult=self.tmult,
                  tmultg=self.tmult_global)
 
     def select_elements(self):
@@ -463,8 +474,6 @@ class TOh(object):
         self.irrepsname = []
         self.irrepdim = np.zeros((self.nclasses,), dtype=int)
         self.tchar = np.zeros((self.nclasses, self.nclasses), dtype=complex)
-        # needed for check_possible_dims()
-        self.pos = None
         # create the suffix for each flip vector
         self.suffixes = []
         if self.withinversion:
@@ -482,17 +491,12 @@ class TOh(object):
                 self.suffixes.append("%d" % (i+1))
         for d in range(1, 5):
             self.get_irreps(d)
-            alldone = self.check_possible_dims()
+            alldone, alldimdone = self.check_possible_dims(d)
             if alldone:
                 break
-        if not alldone:
-            for d in range(2, 3):
-                self.get_irreps(d, special=True)
-                alldone = self.check_possible_dims()
-                if alldone:
-                    break
-        if not alldone:
-            try: # to access self.flip_i
+            if alldimdone:
+                continue
+            if d == 1:
                 # create the suffix for each imaginary flip vector
                 self.suffixes_i = []
                 if self.withinversion:
@@ -507,9 +511,11 @@ class TOh(object):
                     for i, _ in enumerate(self.flip_i):
                         self.suffixes_i.append("%d" % (i+1))
                 self.get_irreps_imaginary()
-                alldone = self.check_possible_dims()
-            except AttributeError:
-                print("could not restore imaginary flips, not all irreps found.")
+            else:
+                self.get_irreps(d, special=True)
+            alldone = self.check_possible_dims()
+            if alldone:
+                break
 
     def find_irreps(self):
         self.irreps = []
