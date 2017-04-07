@@ -28,15 +28,24 @@ def main():
         #print(_g.irrepsname)
 
     # calc coefficients
-    print(" CMF ".center(40, "="))
-    basis = group.TOhBasis(groups[0],jmax=5)
+#    print(" CMF ".center(40, "="))
+#    basis = group.TOhBasis(groups[0],jmax=5)
+#    print("display")
+#    basis.print_table()
+#    print("pandas")
+#    print basis.to_pandas(1)
+#    print("latex")
+#    basis.to_latex()
+
+    # calc coefficients
+    print(" MF 1 ".center(40, "="))
+    basis = group.TOhBasis(groups[1],jmax=5)
     print("display")
     basis.print_table()
-    print("pandas")
-    basis.to_pandas(1)
     print("latex")
     basis.to_latex()
     return
+
 
 if __name__ == "__main__":
     try:

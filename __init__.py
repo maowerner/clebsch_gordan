@@ -1,1 +1,1 @@
-from groups import *
+from clebsch_gordan.groups import *
