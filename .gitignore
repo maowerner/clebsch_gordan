@@ -90,3 +90,6 @@ ENV/
 
 # vim swap files
 .*.sw[p,o]
+
+# output from clebsch_gordan
+groups

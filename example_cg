@@ -1,45 +1,106 @@
 #!/usr/bin/python
 
+import os
 import numpy as np
 import itertools as it
 
 import group
 
 def main():
-    p2max = 4
-    jmax = 3
+    prefs = [[0.,0.,0.], [0.,0.,1.], [1.,1.,0.], [1.,1.,1.], [0.,0.,2.],[0.,1.,2.],[1.,1.,2.]]
+    #prefs = np.asarray(prefs)
+    p2max = len(prefs)
     groups = []
 
     # initialize groups
-    for p2 in range(p2max):
-        g = group.OhGroup(p2=p2, instances=True)
-        groups.append(g)
+    S = 1./np.sqrt(2.)
+    #U3 = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
+    U3 = np.asarray([[0,0,-1.],[1.j,0,0],[0,1,0]])
+    U2 = np.asarray([[S,S],[1.j*S,-1.j*S]])
+
+    path = os.path.normpath(os.path.join(os.getcwd(), "groups/"))
+    groups = group.init_groups(prefs=prefs, p2max=p2max, U2=U2, U3=U3,
+            path=path)
 
     # calc coefficients
-    print(" CMF ".center(40, "*"))
-    irnames = groups[0].lirreps
+    print(" CMF ".center(40, "="))
+    irnames = groups[0].irrepsname
     for p in range(p2max):
-        cgs = group.OhCG(0, p, p, groups)
-        for ir in irnames:
-            a, b, c = cgs.get_pion_cg(ir)
-            if b is not None:
-                print(ir)
-                group.cg_to_pandas(b,c)
-                print ' '
-
-    print(" MF1 ".center(40, "*"))
-    irnames = groups[1].lirreps
-    for i, j in it.product(range(p2max), repeat=2):
-        if j-i != 1:
+        print(" %d x %d -> 0 ".center(40, "+") % (p, p))
+        try:
+            cgs = group.TOhCG(0, p, p, groups)
+            #cgs = group.TOhCG(0, p, p, groups, ir1="A2g", ir2="T2g")
+            #print("display")
+            #cgs.display()
+            print("operators")
+            cgs.print_operators()
+            #print("latex")
+            #cgs.to_latex()
+            #print("pandas")
+            #cgs.to_pandas()
+        except RuntimeError:
             continue
-        cgs = group.OhCG(1, i, j, groups)
-        print("%d x %d -> 1" % (i, j))
-        for ir in irnames:
-            a, b, c = cgs.get_pion_cg(ir)
-            if b is not None:
-                print(ir)
-                group.cg_to_pandas(b,c)
-                print ' '
+
+    print(" MF1 ".center(40, "="))
+    irnames = groups[1].irrepsname
+    for i, j in it.product(range(p2max), repeat=2):
+        if i == 0 or j == 0:
+            empty = 3
+        else:
+            empty = 4
+        try:
+            cgs = group.TOhCG(1, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 1 ".center(40, "+") % (i, j))
+            #print("display")
+            #cgs.display(emptyline=empty)
+            print("operators")
+            cgs.print_operators()
+            #print("latex")
+            #cgs.to_latex()
+            #print("pandas")
+            #cgs.to_pandas()
+        except RuntimeError:
+            continue
+
+    print(" MF2 ".center(40, "="))
+    irnames = groups[2].irrepsname
+    for i, j in it.product(range(p2max), repeat=2):
+        try:
+            cgs = group.TOhCG(2, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 2 ".center(40, "+") % (i, j))
+            #print("display")
+            #cgs.display(emptyline=empty)
+            print("operators")
+            cgs.print_operators()
+            #print("latex")
+            #cgs.to_latex()
+            #print("pandas")
+            #cgs.to_pandas()
+        except RuntimeError:
+            continue
+
+    print(" MF3 ".center(40, "="))
+    irnames = groups[3].irrepsname
+    for i, j in it.product(range(p2max), repeat=2):
+        try:
+            cgs = group.TOhCG(3, i, j, groups)
+            if cgs is None:
+                continue
+            print(" %d x %d -> 3 ".center(40, "+") % (i, j))
+            #print("display")
+            #cgs.display(emptyline=empty)
+            print("operators")
+            cgs.print_operators()
+            #print("latex")
+            #cgs.to_latex()
+            #print("pandas")
+            #cgs.to_pandas()
+        except RuntimeError:
+            continue
 
 if __name__ == "__main__":
     try:
