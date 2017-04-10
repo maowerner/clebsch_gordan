@@ -326,25 +326,41 @@ class TOhBasis(object):
         # actual work
         jmult = int(2*j+1)
         base = self.basis[j]
-        df_base = None
+        df_base = DataFrame()
+#        df_base.columns = pd.Index(["p", "J", "M", "coeff", "Irrep", "mult", "row"])
         for ir, basevecs in enumerate(base):
             if basevecs is None:
                 continue
-            idim = self.dims[ir]
             iname = self.irrepsname[ir]
-            l = basevecs.shape[0]
-            m = l // idim
-            # build dataframe in whatever basis group was calculated
-            df_base = DataFrame(
-                    {"p" : [self.pref] * jmult * idim,\
-                     "J" : [j] * jmult * idim,\
-                     "M" : range(-j,j+1) * idim,\
-                     "coeff" : [_s(x) for x in basevecs.flatten()],\
-                     "Irrep" : [iname] * jmult * idim,\
-                     "mult" : [x%m+1 for x in range(l)]*idim,\
-                     "row" : [x//m+1 for x in range(l)]*idim})
-            print(df_base)
+            m = basevecs.shape[0] // self.dims[ir]
+            for ind, vec in enumerate(basevecs):
+                a, b = divmod(ind, m)
+                df_base = pd.concat([ df_base, DataFrame( \
+                    {"p" : [self.pref] * jmult, \
+                     "J" : [j] * jmult,\
+                     "M" : range(-j,j+1),\
+                     "coeff" : [_s(x) for x in vec.flatten()],\
+                     "Irrep" : [iname] * jmult,\
+                     "mult" : [b+1] * jmult,\
+                     "row" : [a+1] * jmult}) ], ignore_index=True)
+                     
+#            idim = self.dims[ir]
+#            iname = self.irrepsname[ir]
+#            l = basevecs.shape[0]
+#            m = l // idim
+#            # build dataframe in whatever basis group was calculated
+#            df_base = pd.concat([ df_base, DataFrame(
+#                    {"p": [self.pref] * jmult * idim,\
+#                     "J" : [j] * jmult * idim,\
+#                     "M" : range(-j,j+1) * idim,\
+#                     "coeff" : [_s(x) for x in basevecs.flatten()],\
+#                     "Irrep" : [iname] * jmult * idim,\
+#                     "mult" : [x%m+1 for x in range(l)]*idim,\
+#                     "row" : [x//m+1 for x in range(l)]*idim})
+#                        ], ignore_index=True)
+
             # change basis to cartesian basis if using 3D irrep
+        return df_base
 
 if __name__ == "__main__":
     print("for checks execute the test script")

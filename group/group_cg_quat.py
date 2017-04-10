@@ -820,8 +820,8 @@ class TOhCG(object):
             #        print(tmp)
             #        line = True
         df = DataFrame(dfdict)
-        print(df)
-        #return df
+#        print(df)
+        return df
 
 if __name__ == "__main__":
     print("for checks execute the test script")
