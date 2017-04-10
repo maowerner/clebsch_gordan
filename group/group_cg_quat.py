@@ -220,7 +220,7 @@ class TOhCG(object):
         return coset
 
     def gen_momenta(self, pm=4):
-        print("pm=%d" % pm)
+        #print("pm=%d" % pm)
         # pm: maximum component in each direction
         def _abs(x):
             return np.vdot(x, x) <= pm
@@ -354,7 +354,14 @@ class TOhCG(object):
         self.cg = []
         if groups is None:
             return
-        g = groups[p]
+        g = None
+        # get the group associated with the momentum squared p
+        for _g in groups:
+            if _g.p2 == p:
+                g = _g
+                break
+        if g is None:
+            raise RuntimeError("no group for found for calculating CG's.")
         multi = 0
         dim1 = self.gamma1.shape[1]
         dim2 = self.gamma2.shape[1]

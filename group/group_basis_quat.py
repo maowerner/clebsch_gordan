@@ -51,9 +51,9 @@ class TOhBasis(object):
         # according to Altmann & Herzig, Point-group Theory Tables, 2011.
         # The following basis change is done on top for the [2-4]D groups,
         # respectively.
-        self.U2 = group.U2.conj().T
-        self.U3 = group.U3.conj().T
-        self.U4 = group.U4.conj().T
+        self.U2 = group.U2
+        self.U3 = group.U3
+        self.U4 = group.U4
 
         # calculate
         self.Rmat = self.precalc_R_matrices(group)

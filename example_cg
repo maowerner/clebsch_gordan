@@ -18,18 +18,26 @@ def main():
     U3 = np.asarray([[0,0,-1.],[1.j,0,0],[0,1,0]])
     U2 = np.asarray([[S,S],[1.j*S,-1.j*S]])
 
+    # init groups
     path = os.path.normpath(os.path.join(os.getcwd(), "groups/"))
     groups = group.init_groups(prefs=prefs, p2max=p2max, U2=U2, U3=U3,
             path=path)
+    # define the particles to combine
+    j1 = 1 # J quantum number of particle 1
+    j2 = 1 # J quantum number of particle 2
+    ir1 = [ g.subduction_SU2(int(j1*2+1)) for g in groups]
+    ir2 = [ g.subduction_SU2(int(j2*2+1)) for g in groups]
 
     # calc coefficients
     print(" CMF ".center(40, "="))
-    irnames = groups[0].irrepsname
-    for p in range(p2max):
+    for p, i1, i2 in zip(range(p2max), ir1, ir2):
         print(" %d x %d -> 0 ".center(40, "+") % (p, p))
-        try:
-            cgs = group.TOhCG(0, p, p, groups)
-            #cgs = group.TOhCG(0, p, p, groups, ir1="A2g", ir2="T2g")
+        for _i1, _i2 in it.product(i1, i2):
+            print(" %r x %r -> 0 ".center(40, "+") % (_i1, _i2))
+            try:
+                cgs = group.TOhCG(0, p, p, groups, ir1=_i1, ir2=_i2)
+            except RuntimeError:
+                continue
             #print("display")
             #cgs.display()
             print("operators")
@@ -38,21 +46,21 @@ def main():
             #cgs.to_latex()
             #print("pandas")
             #cgs.to_pandas()
-        except RuntimeError:
-            continue
 
     print(" MF1 ".center(40, "="))
-    irnames = groups[1].irrepsname
-    for i, j in it.product(range(p2max), repeat=2):
+    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
+        print(" %d x %d -> 1 ".center(40, "+") % (i, j))
         if i == 0 or j == 0:
             empty = 3
         else:
             empty = 4
-        try:
-            cgs = group.TOhCG(1, i, j, groups)
-            if cgs is None:
+        for _i1, _i2 in it.product(i1, i2):
+            try:
+                cgs = group.TOhCG(1, i, j, groups, ir1=_i1, ir2=_i2)
+                if cgs is None:
+                    continue
+            except RuntimeError:
                 continue
-            print(" %d x %d -> 1 ".center(40, "+") % (i, j))
             #print("display")
             #cgs.display(emptyline=empty)
             print("operators")
@@ -61,47 +69,46 @@ def main():
             #cgs.to_latex()
             #print("pandas")
             #cgs.to_pandas()
-        except RuntimeError:
-            continue
 
     print(" MF2 ".center(40, "="))
-    irnames = groups[2].irrepsname
-    for i, j in it.product(range(p2max), repeat=2):
-        try:
-            cgs = group.TOhCG(2, i, j, groups)
-            if cgs is None:
+    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
+        print(" %d x %d -> 2 ".center(40, "+") % (i, j))
+        for _i1, _i2 in it.product(i1, i2):
+            try:
+                cgs = group.TOhCG(2, i, j, groups, ir1=_i1, ir2=_i2)
+                if cgs is None:
+                    continue
+            except RuntimeError:
                 continue
-            print(" %d x %d -> 2 ".center(40, "+") % (i, j))
             #print("display")
-            #cgs.display(emptyline=empty)
+            #cgs.display()
             print("operators")
             cgs.print_operators()
             #print("latex")
             #cgs.to_latex()
             #print("pandas")
             #cgs.to_pandas()
-        except RuntimeError:
-            continue
 
     print(" MF3 ".center(40, "="))
-    irnames = groups[3].irrepsname
-    for i, j in it.product(range(p2max), repeat=2):
-        try:
-            cgs = group.TOhCG(3, i, j, groups)
-            if cgs is None:
+    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
+        print(" %d x %d -> 3 ".center(40, "+") % (i, j))
+        for _i1, _i2 in it.product(i1, i2):
+            try:
+                cgs = group.TOhCG(3, i, j, groups, ir1=_i1, ir2=_i2)
+                if cgs is None:
+                    continue
+            except RuntimeError:
                 continue
-            print(" %d x %d -> 3 ".center(40, "+") % (i, j))
             #print("display")
-            #cgs.display(emptyline=empty)
+            #cgs.display()
             print("operators")
             cgs.print_operators()
             #print("latex")
             #cgs.to_latex()
             #print("pandas")
             #cgs.to_pandas()
-        except RuntimeError:
-            continue
 
+    return
 if __name__ == "__main__":
     try:
         main()

@@ -399,6 +399,26 @@ class TOh(object):
             _char *= _inv
         return _char
 
+    def subduction_SU2(self, j, useinv=True):
+        """Subduction of continuum SU(2) to lattice irreps
+        with multiplity [j] = 2*j+1.
+
+        Parameter
+        ---------
+        j : int
+            The multiplicity of the angular momentum.
+        useinv : bool
+            Use the inversion flag of the representations.
+
+        Returns
+        -------
+        irreps : list
+            The list of contributing irreps
+        """
+        multi = self.multiplicity_of_SU2(j, useinv=useinv)
+        irreps = [x for x,y in zip(self.irrepsname, multi) if y>0]
+        return irreps
+
     def multiplicity_of_SU2(self, j, useinv=True):
         """Multiplicites of irreps for SU(2) with multiplicity [j] = 2*j+1.
 
