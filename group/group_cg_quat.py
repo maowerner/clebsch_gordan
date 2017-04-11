@@ -248,10 +248,10 @@ class TOhCG(object):
             self.smomenta1 = None
             self.smomenta2 = None
             return
+        T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
         def check_coset(g0, pref, p, coset):
             res = []
             # check needs to be done in basis of T1u
-            T1irrep = g0.irreps[g0.irrepsname.index("T1u")]
             for elem in coset:
                 look = g0.lelements.index(elem)
                 rvec = T1irrep.mx[look].dot(pref)
