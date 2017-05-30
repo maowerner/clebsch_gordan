@@ -819,24 +819,16 @@ class TOhCG(object):
             tsize = size*psize
 
             dfdict["Irrep"] = dfdict["Irrep"] + [name] * tsize
-            dfdict["row"] = dfdict["row"] + [\
-                    (x//psize)//multi+1 for x in range(tsize)]
-            dfdict["multi"] = dfdict["multi"] + [\
-                    (x//psize)%multi+1 for x in range(tsize)]
             dfdict["ptot"] = dfdict["ptot"] + plists[0] * size
             dfdict["p1"] = dfdict["p1"] + plists[1] * size
             dfdict["p2"] = dfdict["p2"] + plists[2] * size
-            dfdict["cg"] = dfdict["cg"] + [\
-                    _s(x) for x in self.cg[i,:multi,:dim].flatten()]
-            #df = DataFrame(dfdict)
-            #for m in range(multi):
-            #    for d in range(dim):
-            #        tstr = cgtostring(self.cg[i,m,d])
-            #        tmp = ["%s"%name, "%d"%d, "%d"%m, tstr]
-            #        tmp = " & ".join(tmp)
-            #        tmp = " ".join([tmp, "\\\\"])
-            #        print(tmp)
-            #        line = True
+            for m in range(multi):
+                for d in range(dim):
+                    dfdict["row"] = dfdict["row"] + [d+1]*psize
+                    dfdict["multi"] = dfdict["multi"] + [m+1]*psize
+                    dfdict["cg"] = dfdict["cg"] + [\
+                            _s(x) for x in self.cg[i,m,d]]
+
         df = DataFrame(dfdict)
 #        print(df)
         return df
