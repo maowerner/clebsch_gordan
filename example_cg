@@ -14,9 +14,15 @@ def main():
 
     # initialize groups
     S = 1./np.sqrt(2.)
+    S = 1./np.sqrt(2.)
     #U3 = np.asarray([[S,0,S],[0,1,0],[S,0,-S]])
+    #U2 = np.asarray([[S,S],[1.j*S,-1.j*S]])
+#    U3 = np.identity(3)
+#    U2 = np.identity(2)
+
+    # cartesian basis
     U3 = np.asarray([[0,0,-1.],[1.j,0,0],[0,1,0]])
-    U2 = np.asarray([[S,S],[1.j*S,-1.j*S]])
+    U2 = np.asarray([[S,S],[1.j*S,-1.j*S]]) 
 
     # init groups
     path = os.path.normpath(os.path.join(os.getcwd(), "groups/"))
@@ -29,51 +35,52 @@ def main():
     ir2 = [ g.subduction_SU2(int(j2*2+1)) for g in groups]
 
     # calc coefficients
-    print(" CMF ".center(40, "="))
-    for p, i1, i2 in zip(range(p2max), ir1, ir2):
-        print(" %d x %d -> 0 ".center(40, "+") % (p, p))
-        for _i1, _i2 in it.product(i1, i2):
-            print(" %r x %r -> 0 ".center(40, "+") % (_i1, _i2))
-            try:
-                cgs = group.TOhCG(0, p, p, groups, ir1=_i1, ir2=_i2)
-            except RuntimeError:
-                continue
-            #print("display")
-            #cgs.display()
-            print("operators")
-            cgs.print_operators()
-            #print("latex")
-            #cgs.to_latex()
-            #print("pandas")
-            #cgs.to_pandas()
-
-    print(" MF1 ".center(40, "="))
-    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
-        print(" %d x %d -> 1 ".center(40, "+") % (i, j))
-        if i == 0 or j == 0:
-            empty = 3
-        else:
-            empty = 4
-        for _i1, _i2 in it.product(i1, i2):
-            try:
-                cgs = group.TOhCG(1, i, j, groups, ir1=_i1, ir2=_i2)
-                if cgs is None:
-                    continue
-            except RuntimeError:
-                continue
-            #print("display")
-            #cgs.display(emptyline=empty)
-            print("operators")
-            cgs.print_operators()
-            #print("latex")
-            #cgs.to_latex()
-            #print("pandas")
-            #cgs.to_pandas()
+#    print(" CMF ".center(40, "="))
+#    for p, i1, i2 in zip(range(p2max), ir1, ir2):
+#        print(" %d x %d -> 0 ".center(40, "+") % (p, p))
+#        for _i1, _i2 in it.product(i1, i2):
+#            print(" %r x %r -> 0 ".center(40, "+") % (_i1, _i2))
+#            try:
+#                cgs = group.TOhCG(0, p, p, groups, ir1=_i1, ir2=_i2)
+#            except RuntimeError:
+#                continue
+#            #print("display")
+#            #cgs.display()
+#            print("operators")
+#            cgs.print_operators()
+#            #print("latex")
+#            #cgs.to_latex()
+#            #print("pandas")
+#            #cgs.to_pandas()
+#
+#    print(" MF1 ".center(40, "="))
+#    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
+#        print(" %d x %d -> 1 ".center(40, "+") % (i, j))
+#        if i == 0 or j == 0:
+#            empty = 3
+#        else:
+#            empty = 4
+#        for _i1, _i2 in it.product(i1, i2):
+#            try:
+#                cgs = group.TOhCG(1, i, j, groups, ir1=_i1, ir2=_i2)
+#                if cgs is None:
+#                    continue
+#            except RuntimeError:
+#                continue
+#            #print("display")
+#            #cgs.display(emptyline=empty)
+#            print("operators")
+#            cgs.print_operators()
+#            #print("latex")
+#            #cgs.to_latex()
+#            #print("pandas")
+#            #cgs.to_pandas()
 
     print(" MF2 ".center(40, "="))
     for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
         print(" %d x %d -> 2 ".center(40, "+") % (i, j))
         for _i1, _i2 in it.product(i1, i2):
+            print _i1, " x ", _i2
             try:
                 cgs = group.TOhCG(2, i, j, groups, ir1=_i1, ir2=_i2)
                 if cgs is None:
@@ -89,24 +96,24 @@ def main():
             #print("pandas")
             #cgs.to_pandas()
 
-    print(" MF3 ".center(40, "="))
-    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
-        print(" %d x %d -> 3 ".center(40, "+") % (i, j))
-        for _i1, _i2 in it.product(i1, i2):
-            try:
-                cgs = group.TOhCG(3, i, j, groups, ir1=_i1, ir2=_i2)
-                if cgs is None:
-                    continue
-            except RuntimeError:
-                continue
-            #print("display")
-            #cgs.display()
-            print("operators")
-            cgs.print_operators()
-            #print("latex")
-            #cgs.to_latex()
-            #print("pandas")
-            #cgs.to_pandas()
+#    print(" MF3 ".center(40, "="))
+#    for (i, i1), (j, i2) in it.product(zip(range(p2max), ir1), zip(range(p2max), ir2)):
+#        print(" %d x %d -> 3 ".center(40, "+") % (i, j))
+#        for _i1, _i2 in it.product(i1, i2):
+#            try:
+#                cgs = group.TOhCG(3, i, j, groups, ir1=_i1, ir2=_i2)
+#                if cgs is None:
+#                    continue
+#            except RuntimeError:
+#                continue
+#            #print("display")
+#            #cgs.display()
+#            print("operators")
+#            cgs.print_operators()
+#            #print("latex")
+#            #cgs.to_latex()
+#            #print("pandas")
+#            #cgs.to_pandas()
 
     return
 if __name__ == "__main__":
